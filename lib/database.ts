@@ -27,8 +27,7 @@ export const initDb = () => {
       user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 

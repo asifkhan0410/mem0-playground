@@ -26,28 +26,31 @@ MEM0_API_KEY=your-mem0-api-key
 
 ## 3. Database Setup
 
-You'll need to set up the following tables in your Supabase database:
+The local SQLite database has been updated to work with Supabase user IDs. The foreign key constraint between `conversations.user_id` and `users.id` has been removed since Supabase manages users externally.
 
-### Users Table
+### Current Local Database Schema
+
+The local SQLite database now has these tables:
+
+### Users Table (Optional - for local reference only)
 ```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
   image TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ### Conversations Table
 ```sql
-CREATE TABLE conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,  -- References Supabase user ID
   title TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
