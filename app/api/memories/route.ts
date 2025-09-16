@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth-server';
 import Mem0Service from '@/lib/mem0';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
+    
+    const { user } = authResult;
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
@@ -16,10 +17,10 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     if (query) {
-      const memories = await Mem0Service.searchMemories(session.user.id, query, limit);
+      const memories = await Mem0Service.searchMemories(user.id, query, limit);
       return NextResponse.json({ memories, total: memories.length });
     } else {
-      const result = await Mem0Service.getAllMemories(session.user.id, limit, offset);
+      const result = await Mem0Service.getAllMemories(user.id, limit, offset);
       return NextResponse.json(result);
     }
   } catch (error) {

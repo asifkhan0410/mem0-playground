@@ -1,26 +1,26 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth-provider';
 import { redirect } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ChatLayout } from '@/components/chat-layout';
 import { Conversation } from '@/types';
 
 export default function ChatPage() {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
+    if (loading) return;
+    if (!user) {
       redirect('/auth/signin');
       return;
     }
     
     fetchConversations();
-  }, [session, status]);
+  }, [user, loading]);
 
   const fetchConversations = async () => {
     try {
@@ -97,7 +97,7 @@ export default function ChatPage() {
     }
   };
 
-  if (status === 'loading' || isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -105,7 +105,7 @@ export default function ChatPage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     redirect('/auth/signin');
     return null;
   }

@@ -1,4 +1,4 @@
-const { initDb } = require('../lib/database');
+const { initDb } = require('../lib/database.ts');
 
 console.log('Initializing database...');
 initDb();

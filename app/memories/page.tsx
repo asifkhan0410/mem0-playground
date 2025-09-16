@@ -1,27 +1,27 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth-provider';
 import { redirect } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { MemoriesLibrary } from '@/components/memories-library';
 import { Memory } from '@/types';
 
 export default function MemoriesPage() {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    if (status === 'loading') return;
-    if (!session) {
+    if (loading) return;
+    if (!user) {
       redirect('/auth/signin');
       return;
     }
     
     fetchMemories();
-  }, [session, status, searchQuery]);
+  }, [user, loading, searchQuery]);
 
   const fetchMemories = async () => {
     try {
@@ -76,7 +76,7 @@ export default function MemoriesPage() {
     }
   };
 
-  if (status === 'loading' || isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -84,7 +84,7 @@ export default function MemoriesPage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     redirect('/auth/signin');
     return null;
   }

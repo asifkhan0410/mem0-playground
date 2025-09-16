@@ -1,21 +1,21 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/auth-provider';
 import { redirect } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (loading) return;
     
-    if (session) {
+    if (user) {
       redirect('/chat');
     } else {
       redirect('/auth/signin');
     }
-  }, [session, status]);
+  }, [user, loading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

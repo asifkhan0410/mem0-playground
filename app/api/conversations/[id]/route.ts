@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth-server';
 import db from '@/lib/database';
 
 export async function GET(
@@ -8,15 +7,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
+    
+    const { user } = authResult;
     const conversation = db.prepare(`
       SELECT * FROM conversations 
       WHERE id = ? AND user_id = ?
-    `).get(params.id, session.user.id);
+    `).get(params.id, user.id);
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -40,18 +40,19 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
+    
+    const { user } = authResult;
     const { title } = await request.json();
 
     const result = db.prepare(`
       UPDATE conversations 
       SET title = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND user_id = ?
-    `).run(title, params.id, session.user.id);
+    `).run(title, params.id, user.id);
 
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -73,15 +74,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
+    
+    const { user } = authResult;
     const result = db.prepare(`
       DELETE FROM conversations 
       WHERE id = ? AND user_id = ?
-    `).run(params.id, session.user.id);
+    `).run(params.id, user.id);
 
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });

@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth-server';
 import db from '@/lib/database';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
+    
+    const { user } = authResult;
     const conversations = db.prepare(`
       SELECT * FROM conversations 
       WHERE user_id = ? 
       ORDER BY updated_at DESC
-    `).all(session.user.id);
+    `).all(user.id);
 
     return NextResponse.json({ conversations });
   } catch (error) {
@@ -26,18 +26,19 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
+    
+    const { user } = authResult;
     const { title } = await request.json();
     const conversationId = uuidv4();
 
     db.prepare(`
       INSERT INTO conversations (id, user_id, title)
       VALUES (?, ?, ?)
-    `).run(conversationId, session.user.id, title || 'New Conversation');
+    `).run(conversationId, user.id, title || 'New Conversation');
 
     const conversation = db.prepare(`
       SELECT * FROM conversations WHERE id = ?

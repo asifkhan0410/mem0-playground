@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth-server';
 import db from '@/lib/database';
 import Mem0Service from '@/lib/mem0';
 import OpenAIService from '@/lib/openai';
@@ -9,10 +8,12 @@ import { Message } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
+    
+    const { user } = authResult;
 
     const { conversationId, content } = await request.json();
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const conversation = db.prepare(`
       SELECT * FROM conversations 
       WHERE id = ? AND user_id = ?
-    `).get(conversationId, session.user.id);
+    `).get(conversationId, user.id);
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
