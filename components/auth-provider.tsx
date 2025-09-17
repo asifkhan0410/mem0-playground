@@ -52,10 +52,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(false);
 
         if (event === 'SIGNED_IN') {
-          router.push('/chat');
+          // Only redirect to chat if user is on auth page or root
+          const currentPath = window.location.pathname;
+          if (currentPath === '/auth/signin' || currentPath === '/') {
+            router.push('/chat');
+          }
         } else if (event === 'SIGNED_OUT') {
           router.push('/auth/signin');
         }
+        // For 'TOKEN_REFRESHED' events, don't redirect - just update the user state
       }
     );
 

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Brain } from 'lucide-react';
+import { Shimmer } from '@/components/shimmer';
 
 interface ReferencedMemory {
   id: string;
@@ -74,15 +74,17 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-3">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="h-4 bg-muted rounded w-8"></div>
-                  <div className="h-4 w-4 bg-muted rounded"></div>
-                </div>
-                <div className="h-8 bg-muted rounded"></div>
-              </CardContent>
-            </Card>
+            <Shimmer key={i} className="rounded-lg">
+              <Card>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="h-4 bg-muted rounded w-8"></div>
+                    <div className="h-4 w-4 bg-muted rounded"></div>
+                  </div>
+                  <div className="h-8 bg-muted rounded"></div>
+                </CardContent>
+              </Card>
+            </Shimmer>
           ))}
         </div>
       ) : (
@@ -112,9 +114,9 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                   {memory.text}
                 </p>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
         </div>
       )}
     </div>

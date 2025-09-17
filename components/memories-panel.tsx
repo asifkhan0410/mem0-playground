@@ -1,24 +1,33 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Search, Brain, Calendar, Tag, RefreshCw } from 'lucide-react';
-import { Memory } from '@/types';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Search, Brain, Calendar, Tag, RefreshCw } from "lucide-react";
+import { Memory } from "@/types";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Shimmer } from "@/components/shimmer";
 
 interface MemoriesPanelProps {
   conversationId?: string;
-  onMemoryActivity?: (activity: { added: number; updated: number; deleted: number }) => void;
+  onMemoryActivity?: (activity: {
+    added: number;
+    updated: number;
+    deleted: number;
+  }) => void;
   refreshTrigger?: number; // A number that changes when memories should be refreshed
 }
 
-export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger }: MemoriesPanelProps) {
+export function MemoriesPanel({
+  conversationId,
+  onMemoryActivity,
+  refreshTrigger,
+}: MemoriesPanelProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [newMemoriesCount, setNewMemoriesCount] = useState(0);
   const [newMemoryIds, setNewMemoryIds] = useState<Set<string>>(new Set());
@@ -40,50 +49,52 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (debouncedSearchQuery) params.set('query', debouncedSearchQuery);
-      params.set('limit', '20');
-      
+      if (debouncedSearchQuery) params.set("query", debouncedSearchQuery);
+      params.set("limit", "20");
+
       const response = await fetch(`/api/memories?${params}`);
       const data = await response.json();
-      
+
       const newMemories = data.memories || data.results || [];
-      
+
       // Track if we have new memories
       if (memories.length > 0 && newMemories.length > memories.length) {
         const addedCount = newMemories.length - memories.length;
         setNewMemoriesCount(addedCount);
-        
+
         // Find new memory IDs
         const existingIds = new Set(memories.map((m: Memory) => m.id));
-        const newIds = newMemories.filter((m: Memory) => !existingIds.has(m.id));
+        const newIds = newMemories.filter(
+          (m: Memory) => !existingIds.has(m.id)
+        );
         setNewMemoryIds(new Set(newIds.map((m: Memory) => m.id)));
-        
+
         // Notify parent component about memory activity
         if (onMemoryActivity) {
           onMemoryActivity({ added: addedCount, updated: 0, deleted: 0 });
         }
-        
+
         // Clear the new memories indicators after a delay
         setTimeout(() => {
           setNewMemoriesCount(0);
           setNewMemoryIds(new Set());
         }, 5000);
       }
-      
+
       setMemories(newMemories);
     } catch (error) {
-      console.error('Error fetching memories:', error);
+      console.error("Error fetching memories:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -101,19 +112,19 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
               disabled={isLoading}
               className="h-6 w-6 p-0"
             >
-              <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`}
+              />
             </Button>
             {newMemoriesCount > 0 && (
               <Badge variant="default" className="animate-pulse">
                 +{newMemoriesCount} new
               </Badge>
             )}
-            <Badge variant="secondary">
-              {memories.length}
-            </Badge>
+            <Badge variant="secondary">{memories.length}</Badge>
           </div>
         </div>
-        
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -127,32 +138,35 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
 
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
-          {isLoading ? (
+          {isLoading && memories.length === 0 ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse">
+                <Shimmer key={i}>
                   <div className="h-24 bg-muted rounded-md"></div>
-                </div>
+                </Shimmer>
               ))}
             </div>
           ) : memories.length > 0 ? (
             memories.map((memory) => (
-              <Card 
-                key={memory.id} 
+              <Card
+                key={memory.id}
                 className={`group hover:shadow-md transition-all duration-300 ${
-                  newMemoryIds.has(memory.id) 
-                    ? 'ring-2 ring-primary/20 bg-primary/5 animate-pulse' 
-                    : ''
+                  newMemoryIds.has(memory.id)
+                    ? "ring-2 ring-primary/20 bg-primary/5 animate-pulse"
+                    : ""
                 }`}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="p-3 pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-sm font-medium line-clamp-2">
                       {memory.text}
                     </CardTitle>
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {newMemoryIds.has(memory.id) && (
-                        <Badge variant="default" className="text-xs animate-bounce">
+                        <Badge
+                          variant="default"
+                          className="text-xs animate-bounce"
+                        >
                           NEW
                         </Badge>
                       )}
@@ -164,23 +178,17 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-3 pb-3">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {formatDate(memory.created_at)}
                     </div>
-                    {memory.metadata && Object.keys(memory.metadata).length > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Tag className="h-3 w-3" />
-                        <span>Tagged</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
             ))
-          ) : (
+          ) : !isLoading ? (
             <div className="text-center py-12 text-muted-foreground">
               <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
               {searchQuery ? (
@@ -195,7 +203,7 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
                 </>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </ScrollArea>
     </div>

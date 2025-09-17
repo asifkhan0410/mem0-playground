@@ -1,32 +1,33 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Search, 
-  Brain, 
-  Edit2, 
-  Trash2, 
-  Calendar, 
-  Tag, 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Search,
+  Brain,
+  Edit2,
+  Trash2,
+  Calendar,
+  Tag,
   ArrowLeft,
-  Filter
-} from 'lucide-react';
-import { Memory } from '@/types';
-import Link from 'next/link';
-import { useDebounce } from '@/hooks/use-debounce';
+  Filter,
+} from "lucide-react";
+import { Memory } from "@/types";
+import Link from "next/link";
+import { useDebounce } from "@/hooks/use-debounce";
+import { ShimmerCard } from "@/components/shimmer";
 
 interface MemoriesLibraryProps {
   memories: Memory[];
@@ -35,6 +36,7 @@ interface MemoriesLibraryProps {
   onSearchChange: (query: string) => void;
   onUpdateMemory: (id: string, text: string) => void;
   onDeleteMemory: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export function MemoriesLibrary({
@@ -44,9 +46,10 @@ export function MemoriesLibrary({
   onSearchChange,
   onUpdateMemory,
   onDeleteMemory,
+  isLoading = false,
 }: MemoriesLibraryProps) {
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
-  const [editText, setEditText] = useState('');
+  const [editText, setEditText] = useState("");
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
   // Debounce search query
@@ -72,17 +75,17 @@ export function MemoriesLibrary({
     if (editingMemory && editText.trim()) {
       await onUpdateMemory(editingMemory.id, editText.trim());
       setEditingMemory(null);
-      setEditText('');
+      setEditText("");
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -128,62 +131,75 @@ export function MemoriesLibrary({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {memories.map((memory) => (
-            <Card key={memory.id} className="group hover:shadow-lg transition-shadow">
-              <CardHeader className="p-4">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-sm font-medium line-clamp-3 flex-1">
-                    {memory.text}
-                  </CardTitle>
-                  <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(memory)}
-                    >
-                      <Edit2 className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDeleteMemory(memory.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 py-0 pb-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <span>Created {formatDate(memory.created_at)}</span>
-                  </div>
-                  {memory.updated_at !== memory.created_at && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Edit2 className="h-3 w-3" />
-                      <span>Updated {formatDate(memory.updated_at)}</span>
+        <div className="relative">
+          {isLoading && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <ShimmerCard key={`shimmer-${index}`} />
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {memories.map((memory) => (
+              <Card
+                key={memory.id}
+                className="group hover:shadow-lg transition-shadow"
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-sm font-medium line-clamp-3 flex-1">
+                      {memory.text}
+                    </CardTitle>
+                    <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(memory)}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDeleteMemory(memory.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between pt-4">
-                    <Badge variant="outline" className="text-xs">
-                      Id: {memory.id.substring(0, 16)}...
-                    </Badge>
-                    {memory.score && (
-                      <Badge variant="secondary" className="text-xs">
-                        {Math.round(memory.score * 100)}% match
-                      </Badge>
-                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="px-4 py-0 pb-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>Created {formatDate(memory.created_at)}</span>
+                    </div>
+                    {memory.updated_at !== memory.created_at && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Edit2 className="h-3 w-3" />
+                        <span>Updated {formatDate(memory.updated_at)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-4">
+                      <Badge variant="outline" className="text-xs">
+                        Id: {memory.id.substring(0, 16)}...
+                      </Badge>
+                      {memory.score && (
+                        <Badge variant="secondary" className="text-xs">
+                          {Math.round(memory.score * 100)}% match
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
 
-        {memories.length === 0 && (
+        {!isLoading && memories.length === 0 && (
           <div className="text-center py-12">
             <Brain className="h-16 w-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
             {searchQuery ? (
@@ -200,9 +216,7 @@ export function MemoriesLibrary({
                   Start chatting to create your first memories
                 </p>
                 <Link href="/chat">
-                  <Button>
-                    Start Chatting
-                  </Button>
+                  <Button>Start Chatting</Button>
                 </Link>
               </>
             )}
@@ -210,7 +224,10 @@ export function MemoriesLibrary({
         )}
       </div>
 
-      <Dialog open={!!editingMemory} onOpenChange={() => setEditingMemory(null)}>
+      <Dialog
+        open={!!editingMemory}
+        onOpenChange={() => setEditingMemory(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Memory</DialogTitle>
@@ -229,9 +246,7 @@ export function MemoriesLibrary({
               <Button variant="outline" onClick={() => setEditingMemory(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit}>
-                Save Changes
-              </Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
             </div>
           </div>
         </DialogContent>
