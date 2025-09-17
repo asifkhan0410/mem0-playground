@@ -32,7 +32,16 @@ export async function GET(
       details: memoryLinks,
     };
 
-    return NextResponse.json({ activity });
+    const response = NextResponse.json({ activity });
+    
+    // Add cache headers - cache for 30 seconds if there's activity, no cache if empty
+    if (activity.added > 0 || activity.updated > 0 || activity.deleted > 0) {
+      response.headers.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    } else {
+      response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    
+    return response;
   } catch (error) {
     console.error('Error fetching message activity:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

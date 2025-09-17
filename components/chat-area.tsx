@@ -47,6 +47,7 @@ export function ChatArea({
   const [showRelevantMemories, setShowRelevantMemories] = useState<Set<string>>(
     new Set()
   );
+  const [fetchingActivity, setFetchingActivity] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +55,8 @@ export function ChatArea({
       fetchMessages();
     } else {
       setMessages([]);
+      setMessageActivities({});
+      setFetchingActivity(new Set());
     }
   }, [conversation]);
 
@@ -75,11 +78,14 @@ export function ChatArea({
       const data = await response.json();
       setMessages(data.messages || []);
 
-      // Fetch memory activities for all user messages
+      // Fetch memory activities for user messages that don't already have activity data
       const userMessages =
         data.messages?.filter((msg: Message) => msg.role === "user") || [];
       userMessages.forEach((msg: Message) => {
-        fetchMessageActivity(msg.id);
+        // Only fetch if we don't already have activity data for this message
+        if (!messageActivities[msg.id] && !fetchingActivity.has(msg.id)) {
+          fetchMessageActivity(msg.id);
+        }
       });
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -87,6 +93,18 @@ export function ChatArea({
   };
 
   const fetchMessageActivity = async (messageId: string, retryCount = 0) => {
+    // Skip if already fetching or if we already have activity data
+    if (fetchingActivity.has(messageId) || messageActivities[messageId]) {
+      return;
+    }
+
+    // Mark as fetching
+    setFetchingActivity(prev => {
+      const newSet = new Set(prev);
+      newSet.add(messageId);
+      return newSet;
+    });
+
     try {
       const response = await fetch(`/api/messages/${messageId}/activity`);
       const data = await response.json();
@@ -100,9 +118,15 @@ export function ChatArea({
           activity.updated === 0 &&
           activity.deleted === 0)
       ) {
-        if (retryCount < 10) {
-          // Poll for up to 10 times (about 20 seconds)
+        if (retryCount < 5) { // Reduced from 10 to 5 retries
+          // Poll for up to 5 times (about 10 seconds)
           setTimeout(() => {
+            // Remove from fetching set before retrying
+            setFetchingActivity(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(messageId);
+              return newSet;
+            });
             fetchMessageActivity(messageId, retryCount + 1);
           }, 2000);
           return;
@@ -130,11 +154,25 @@ export function ChatArea({
     } catch (error) {
       console.error("Error fetching message activity:", error);
       // Retry on error if we haven't exceeded limit
-      if (retryCount < 5) {
+      if (retryCount < 3) { // Reduced from 5 to 3 retries
         setTimeout(() => {
+          // Remove from fetching set before retrying
+          setFetchingActivity(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(messageId);
+            return newSet;
+          });
           fetchMessageActivity(messageId, retryCount + 1);
         }, 3000);
+        return;
       }
+    } finally {
+      // Remove from fetching set
+      setFetchingActivity(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(messageId);
+        return newSet;
+      });
     }
   };
 
