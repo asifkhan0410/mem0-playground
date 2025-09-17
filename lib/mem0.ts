@@ -130,6 +130,37 @@ export class Mem0Service {
     }
   }
 
+  static async getMemoryById(userId: string, memoryId: string): Promise<Memory | null> {
+    const mem0Client = await getClient();
+    if (!mem0Client) {
+      console.warn('MEM0 client not initialized - API key missing or server-side issue');
+      return null;
+    }
+    
+    try {
+      const result = await mem0Client.get(memoryId, {
+        user_id: userId,
+      });
+      
+      if (!result) {
+        return null;
+      }
+
+      return {
+        id: result.id,
+        text: result.memory || '',
+        hash: result.hash || '',
+        metadata: result.metadata || {},
+        score: result.score,
+        created_at: typeof result.created_at === 'string' ? result.created_at : (result.created_at || new Date()).toISOString(),
+        updated_at: typeof result.updated_at === 'string' ? result.updated_at : (result.updated_at || new Date()).toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching memory by ID:', error);
+      return null;
+    }
+  }
+
   static async getAllMemories(userId: string, limit = 50, offset = 0): Promise<MemorySearchResult> {
     // Check cache first
     const cachedResults = CacheService.getAllMemories(userId);

@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Send, Brain, User, Bot, Plus, Minus, RotateCcw, RefreshCw } from 'lucide-react';
 import { Conversation, Message, MemoryActivity } from '@/types';
 import { MessageActivityDetails } from './message-activity-details';
+import { RelevantMemories } from './relevant-memories';
 
 interface ChatAreaProps {
   conversation: Conversation | null;
@@ -23,6 +24,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
   const [isLoading, setIsLoading] = useState(false);
   const [messageActivities, setMessageActivities] = useState<Record<string, MemoryActivity>>({});
   const [failedMessages, setFailedMessages] = useState<Set<string>>(new Set());
+  const [showRelevantMemories, setShowRelevantMemories] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,24 +52,42 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       const response = await fetch(`/api/conversations/${conversation.id}`);
       const data = await response.json();
       setMessages(data.messages || []);
+      
+      // Fetch memory activities for all user messages
+      const userMessages = data.messages?.filter((msg: Message) => msg.role === 'user') || [];
+      userMessages.forEach((msg: Message) => {
+        fetchMessageActivity(msg.id);
+      });
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
   };
 
-  const fetchMessageActivity = async (messageId: string) => {
+  const fetchMessageActivity = async (messageId: string, retryCount = 0) => {
     try {
       const response = await fetch(`/api/messages/${messageId}/activity`);
       const data = await response.json();
       
       const activity = data.activity;
+      
+      // If no activity yet and we haven't exceeded retry limit, try again
+      if (!activity || (activity.added === 0 && activity.updated === 0 && activity.deleted === 0)) {
+        if (retryCount < 10) { // Poll for up to 10 times (about 20 seconds)
+          setTimeout(() => {
+            fetchMessageActivity(messageId, retryCount + 1);
+          }, 2000);
+          return;
+        }
+      }
+
+      // Update message activities
       setMessageActivities(prev => ({
         ...prev,
         [messageId]: activity,
       }));
 
       // Notify parent component about memory activity to trigger memories panel refresh
-      if (onMemoryActivity && activity) {
+      if (onMemoryActivity && activity && (activity.added > 0 || activity.updated > 0 || activity.deleted > 0)) {
         onMemoryActivity({
           added: activity.added || 0,
           updated: activity.updated || 0,
@@ -76,6 +96,12 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       }
     } catch (error) {
       console.error('Error fetching message activity:', error);
+      // Retry on error if we haven't exceeded limit
+      if (retryCount < 5) {
+        setTimeout(() => {
+          fetchMessageActivity(messageId, retryCount + 1);
+        }, 3000);
+      }
     }
   };
 
@@ -108,10 +134,8 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
           return [...filtered, data.userMessage, data.assistantMessage];
         });
         
-        // Fetch memory activity for the user message after a short delay
-        setTimeout(() => {
-          fetchMessageActivity(data.userMessage.id);
-        }, 2000);
+        // Start polling for memory activity immediately
+        fetchMessageActivity(data.userMessage.id);
       } else {
         // Still failed
         setFailedMessages(prev => {
@@ -171,10 +195,8 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
           return [...filtered, data.userMessage, data.assistantMessage];
         });
         
-        // Fetch memory activity for the user message after a short delay
-        setTimeout(() => {
-          fetchMessageActivity(data.userMessage.id);
-        }, 2000);
+        // Start polling for memory activity immediately
+        fetchMessageActivity(data.userMessage.id);
       } else {
         // API response was successful but didn't return expected data
         setFailedMessages(prev => {
@@ -197,13 +219,12 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
   };
 
   const formatMessageContent = (content: string) => {
-    // Replace memory citations with clickable badges
+    // Replace memory citations with highlighted text
     return content.replace(/\[memory:([^\]]+)\]/g, (match, memoryId) => {
-      return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 mx-1" title="Referenced Memory: ${memoryId}">
+      return `<span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mx-0.5" title="Referenced Memory: ${memoryId}">
         <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
           <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
-        Memory
       </span>`;
     });
   };
@@ -344,8 +365,73 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                           variant="secondary" 
                           className="text-xs animate-pulse"
                         >
-                          extracting memory...
+                          updating memory...
                         </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {message.role === 'assistant' && (
+                    <div className="mt-2">
+                      {message.id.startsWith('temp-') ? (
+                        <div className="flex items-center justify-start gap-2">
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs animate-pulse"
+                          >
+                            extracting memory...
+                          </Badge>
+                        </div>
+                      ) : (
+                        (() => {
+                          const memoryMatches = message.content.match(/\[memory:[^\]]+\]/g);
+                          const memoryCount = memoryMatches?.length || 0;
+                          
+                          if (memoryCount > 0) {
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    <Brain className="h-3 w-3 mr-1" />
+                                    Referenced {memoryCount} memories
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-6 px-2"
+                                    onClick={() => {
+                                      setShowRelevantMemories(prev => {
+                                        const newSet = new Set(prev);
+                                        if (newSet.has(message.id)) {
+                                          newSet.delete(message.id);
+                                        } else {
+                                          newSet.add(message.id);
+                                        }
+                                        return newSet;
+                                      });
+                                    }}
+                                  >
+                                    {showRelevantMemories.has(message.id) ? 'Hide' : 'Show'} Details
+                                  </Button>
+                                </div>
+                                
+                                {showRelevantMemories.has(message.id) && (
+                                  <RelevantMemories 
+                                    messageId={message.id}
+                                    onClose={() => {
+                                      setShowRelevantMemories(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(message.id);
+                                        return newSet;
+                                      });
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()
                       )}
                     </div>
                   )}
