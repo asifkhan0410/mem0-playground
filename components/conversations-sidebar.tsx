@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/components/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Edit2, 
-  Trash2, 
-  MessageSquare, 
-  LogOut, 
+import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Plus,
+  MoreHorizontal,
+  Edit2,
+  Trash2,
+  MessageSquare,
+  LogOut,
   Brain,
   Moon,
   Sun,
-  Monitor
-} from 'lucide-react';
-import { Conversation } from '@/types';
-import { useTheme } from 'next-themes';
-import Link from 'next/link';
+  Monitor,
+} from "lucide-react";
+import { Conversation } from "@/types";
+import { useTheme } from "next-themes";
+import Link from "next/link";
 
 interface ConversationsSidebarProps {
   conversations: Conversation[];
@@ -45,7 +45,7 @@ export function ConversationsSidebar({
   onDeleteConversation,
 }: ConversationsSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
+  const [editingTitle, setEditingTitle] = useState("");
   const { setTheme } = useTheme();
   const { signOut } = useAuth();
 
@@ -58,19 +58,19 @@ export function ConversationsSidebar({
     if (editingId && editingTitle.trim()) {
       onUpdateConversation(editingId, editingTitle.trim());
       setEditingId(null);
-      setEditingTitle('');
+      setEditingTitle("");
     }
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditingTitle('');
+    setEditingTitle("");
   };
 
   return (
     <div className="h-full flex flex-col border-r bg-muted/10">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-3">
+      <div className="p-4">
+        <div className="flex items-center justify-between">
           <h1 className="font-semibold text-lg flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
             Chat
@@ -82,15 +82,15 @@ export function ConversationsSidebar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTheme('light')}>
+              <DropdownMenuItem onClick={() => setTheme("light")}>
                 <Sun className="mr-2 h-4 w-4" />
                 Light
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')}>
+              <DropdownMenuItem onClick={() => setTheme("dark")}>
                 <Moon className="mr-2 h-4 w-4" />
                 Dark
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')}>
+              <DropdownMenuItem onClick={() => setTheme("system")}>
                 <Monitor className="mr-2 h-4 w-4" />
                 System
               </DropdownMenuItem>
@@ -107,16 +107,8 @@ export function ConversationsSidebar({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <Button 
-          onClick={() => onCreateConversation()} 
-          className="w-full" 
-          size="sm"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Chat
-        </Button>
       </div>
-      
+
       <ScrollArea className="flex-1 p-2">
         <div className="space-y-2">
           {conversations.map((conversation) => (
@@ -127,8 +119,8 @@ export function ConversationsSidebar({
                     value={editingTitle}
                     onChange={(e) => setEditingTitle(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveEdit();
-                      if (e.key === 'Escape') handleCancelEdit();
+                      if (e.key === "Enter") handleSaveEdit();
+                      if (e.key === "Escape") handleCancelEdit();
                     }}
                     className="h-8"
                     autoFocus
@@ -137,17 +129,21 @@ export function ConversationsSidebar({
                     <Button size="sm" onClick={handleSaveEdit}>
                       Save
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCancelEdit}
+                    >
                       Cancel
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div 
+                <div
                   className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${
                     selectedConversation?.id === conversation.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
                   }`}
                   onClick={() => onSelectConversation(conversation)}
                 >
@@ -156,9 +152,9 @@ export function ConversationsSidebar({
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -166,11 +162,13 @@ export function ConversationsSidebar({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(conversation)}>
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(conversation)}
+                      >
                         <Edit2 className="mr-2 h-4 w-4" />
                         Rename
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onDeleteConversation(conversation.id)}
                         className="text-destructive"
                       >
@@ -183,7 +181,7 @@ export function ConversationsSidebar({
               )}
             </div>
           ))}
-          
+
           {conversations.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -193,6 +191,16 @@ export function ConversationsSidebar({
           )}
         </div>
       </ScrollArea>
+      <div className="p-4">
+        <Button
+          onClick={() => onCreateConversation()}
+          className="w-full"
+          size="sm"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          New Chat
+        </Button>
+      </div>
     </div>
   );
 }
