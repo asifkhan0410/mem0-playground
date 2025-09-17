@@ -51,6 +51,9 @@ export function MemoriesLibrary({
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   const [editText, setEditText] = useState("");
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deletingMemory, setDeletingMemory] = useState<Memory | null>(null);
 
   // Debounce search query
   const debouncedLocalSearchQuery = useDebounce(localSearchQuery, 100);
@@ -72,10 +75,31 @@ export function MemoriesLibrary({
   };
 
   const handleSaveEdit = async () => {
-    if (editingMemory && editText.trim()) {
-      await onUpdateMemory(editingMemory.id, editText.trim());
-      setEditingMemory(null);
-      setEditText("");
+    if (editingMemory && editText.trim() && !isUpdating) {
+      setIsUpdating(true);
+      try {
+        await onUpdateMemory(editingMemory.id, editText.trim());
+        setEditingMemory(null);
+        setEditText("");
+      } finally {
+        setIsUpdating(false);
+      }
+    }
+  };
+
+  const handleDeleteClick = (memory: Memory) => {
+    setDeletingMemory(memory);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deletingMemory && !isDeleting) {
+      setIsDeleting(deletingMemory.id);
+      try {
+        await onDeleteMemory(deletingMemory.id);
+        setDeletingMemory(null);
+      } finally {
+        setIsDeleting(null);
+      }
     }
   };
 
@@ -159,14 +183,19 @@ export function MemoriesLibrary({
                       >
                         <Edit2 className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteMemory(memory.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => handleDeleteClick(memory)}
+                         disabled={isDeleting === memory.id}
+                         className="text-destructive hover:text-destructive"
+                       >
+                         {isDeleting === memory.id ? (
+                           <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                         ) : (
+                           <Trash2 className="h-3 w-3" />
+                         )}
+                       </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -243,10 +272,72 @@ export function MemoriesLibrary({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditingMemory(null)}>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingMemory(null)}
+                disabled={isUpdating}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit}>Save Changes</Button>
+              <Button 
+                onClick={handleSaveEdit} 
+                disabled={isUpdating || !editText.trim()}
+              >
+                {isUpdating ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deletingMemory}
+        onOpenChange={() => setDeletingMemory(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Memory</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this memory? This action cannot be undone.
+              </p>
+              {deletingMemory && (
+                <div className="mt-3 p-3 bg-muted rounded-md">
+                  <p className="text-sm line-clamp-3">{deletingMemory.text}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeletingMemory(null)}
+                disabled={!!isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleDeleteConfirm} 
+                disabled={!!isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Memory'
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>

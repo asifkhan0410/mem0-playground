@@ -50,14 +50,21 @@ export default function MemoriesPage() {
       });
       
       if (response.ok) {
+        const data = await response.json();
+        // Update the memory with the response data
         setMemories(prev => 
           prev.map(memory => 
-            memory.id === id ? { ...memory, text } : memory
+            memory.id === id ? { ...memory, ...data.memory } : memory
           )
         );
+      } else {
+        const errorData = await response.json();
+        console.error('Error updating memory:', errorData.error);
+        alert(`Failed to update memory: ${errorData.error}`);
       }
     } catch (error) {
       console.error('Error updating memory:', error);
+      alert('Failed to update memory. Please try again.');
     }
   };
 
@@ -70,9 +77,14 @@ export default function MemoriesPage() {
       if (response.ok) {
         setMemories(prev => prev.filter(memory => memory.id !== id));
         setTotal(prev => prev - 1);
+      } else {
+        const errorData = await response.json();
+        console.error('Error deleting memory:', errorData.error);
+        alert(`Failed to delete memory: ${errorData.error}`);
       }
     } catch (error) {
       console.error('Error deleting memory:', error);
+      alert('Failed to delete memory. Please try again.');
     }
   };
 

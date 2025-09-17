@@ -207,7 +207,7 @@ export class Mem0Service {
     }
   }
 
-  static async updateMemory(memoryId: string, text: string): Promise<boolean> {
+  static async updateMemory(memoryId: string, text: string, userId?: string): Promise<boolean> {
     const mem0Client = await getClient();
     if (!mem0Client) {
       console.warn('MEM0 client not initialized - API key missing or server-side issue');
@@ -215,7 +215,9 @@ export class Mem0Service {
     }
     
     try {
-      await mem0Client.update(memoryId, text);
+      await mem0Client.update(memoryId, text, {
+        user_id: userId,
+      });
       
       // Invalidate cache for this specific memory
       CacheService.invalidateMemory(memoryId);
@@ -228,7 +230,7 @@ export class Mem0Service {
     }
   }
 
-  static async deleteMemory(memoryId: string): Promise<boolean> {
+  static async deleteMemory(memoryId: string, userId?: string): Promise<boolean> {
     const mem0Client = await getClient();
     if (!mem0Client) {
       console.warn('MEM0 client not initialized - API key missing or server-side issue');
@@ -236,7 +238,9 @@ export class Mem0Service {
     }
     
     try {
-      await mem0Client.delete(memoryId);
+      await mem0Client.delete(memoryId, {
+        user_id: userId,
+      });
       
       // Invalidate cache for this specific memory
       CacheService.invalidateMemory(memoryId);
