@@ -23,7 +23,7 @@ export async function GET(
       JOIN conversations c ON m.conversation_id = c.id
       WHERE ml.message_id = ? AND c.user_id = ?
       ORDER BY ml.created_at ASC
-    `).all(params.id, session.user.id) as MemoryLink[];
+    `).all(params.id, user.id) as MemoryLink[];
 
     const activity = {
       added: memoryLinks.filter(link => link.operation === 'add').length,

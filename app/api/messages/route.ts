@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     `).all(conversationId) as Pick<Message, 'role' | 'content'>[];
 
     // Search relevant memories
-    const relevantMemories = await Mem0Service.searchMemories(session.user.id, content, 5);
+    const relevantMemories = await Mem0Service.searchMemories(user.id, content, 5);
 
     // Generate assistant response
     const llmResponse = await OpenAIService.generateResponse(
@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
     const assistantMessageId = uuidv4();
     db.prepare(`
       INSERT INTO messages (id, conversation_id, role, content)
-      VALUES (?, ?, 'assistant', ?)
+      VALUES (?, ?, ?, ?)
     `).run(assistantMessageId, conversationId, 'assistant', llmResponse.content);
 
     // Add memory asynchronously (don't wait for completion)
-    Mem0Service.addMemory(session.user.id, content, { conversationId, messageId: userMessageId })
+    Mem0Service.addMemory(user.id, content, { conversationId, messageId: userMessageId })
       .then(memoryIds => {
         // Save memory links
         memoryIds.forEach(memoryId => {

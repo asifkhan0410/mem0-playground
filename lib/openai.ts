@@ -22,6 +22,11 @@ export interface LLMResponse {
 }
 
 export class OpenAIService {
+  // List of models to try in order of preference
+  private static readonly FALLBACK_MODELS = [
+    'gpt-4o-mini',
+  ];
+
   static async generateResponse(
     messages: ChatMessage[],
     memories: Memory[] = []
@@ -48,15 +53,38 @@ Guidelines:
 - If no relevant memories exist, answer based on your general knowledge
 - Keep responses concise but informative${memoryContext}`;
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: systemMessage },
-          ...messages,
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      });
+      // Try models in order of preference
+      const modelsToTry = [
+        process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        ...this.FALLBACK_MODELS.filter(model => model !== (process.env.OPENAI_MODEL || 'gpt-4o-mini'))
+      ];
+
+      let response;
+      let lastError;
+
+      for (const model of modelsToTry) {
+        try {
+          response = await openai.chat.completions.create({
+            model,
+            messages: [
+              { role: 'system', content: systemMessage },
+              ...messages,
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          });
+          console.log(`Successfully used model: ${model}`);
+          break; // Success, exit the loop
+        } catch (error: any) {
+          console.warn(`Model ${model} failed:`, error.message);
+          lastError = error;
+          continue; // Try next model
+        }
+      }
+
+      if (!response) {
+        throw lastError || new Error('All models failed');
+      }
 
       const content = response.choices[0]?.message?.content || '';
       

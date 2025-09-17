@@ -19,9 +19,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-4o-mini
 
 # Mem0
 MEM0_API_KEY=your-mem0-api-key
+MEM0_PROJECT_ID=your-mem0-project-id
 ```
 
 ## 3. Database Setup
@@ -142,3 +144,28 @@ CREATE POLICY "Users can delete their own conversations" ON conversations
 - **Real-time capabilities**: Supabase provides real-time subscriptions
 - **Unified backend**: Database and auth in one service
 - **Better security**: Built-in security features and RLS policies
+
+## Caching Layer
+
+The application now includes a comprehensive caching layer for Mem0 operations to improve performance:
+
+### Cache Configuration
+- **Search Results**: 5-minute TTL for search queries
+- **All Memories**: 10-minute TTL for user memory lists
+- **User Data**: 30-minute TTL for user-specific data
+
+### Cache Invalidation
+- Automatic cache invalidation when memories are added, updated, or deleted
+- User-specific cache clearing to maintain data consistency
+- Memory-specific invalidation for targeted cache updates
+
+### Cache Monitoring
+Access cache statistics at `/api/cache/stats`:
+- Cache hit/miss ratios
+- Number of cached items per cache type
+- Performance metrics
+
+### Cache Management
+- Clear all caches: `DELETE /api/cache/stats`
+- Automatic cleanup of expired entries
+- Memory-efficient storage without object cloning
