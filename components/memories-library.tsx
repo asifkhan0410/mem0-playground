@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Memory } from '@/types';
 import Link from 'next/link';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface MemoriesLibraryProps {
   memories: Memory[];
@@ -46,6 +47,21 @@ export function MemoriesLibrary({
 }: MemoriesLibraryProps) {
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   const [editText, setEditText] = useState('');
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  // Debounce search query
+  const debouncedLocalSearchQuery = useDebounce(localSearchQuery, 100);
+
+  useEffect(() => {
+    if (debouncedLocalSearchQuery !== searchQuery) {
+      onSearchChange(debouncedLocalSearchQuery);
+    }
+  }, [debouncedLocalSearchQuery, searchQuery, onSearchChange]);
+
+  // Update local search query when prop changes
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
 
   const handleEdit = (memory: Memory) => {
     setEditingMemory(memory);
@@ -79,7 +95,6 @@ export function MemoriesLibrary({
               <Link href="/chat">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Chat
                 </Button>
               </Link>
               <div>
@@ -105,8 +120,8 @@ export function MemoriesLibrary({
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
               placeholder="Search memories..."
               className="pl-9"
             />
@@ -116,7 +131,7 @@ export function MemoriesLibrary({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {memories.map((memory) => (
             <Card key={memory.id} className="group hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-sm font-medium line-clamp-3 flex-1">
                     {memory.text}
@@ -140,7 +155,7 @@ export function MemoriesLibrary({
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 py-0 pb-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
@@ -152,21 +167,9 @@ export function MemoriesLibrary({
                       <span>Updated {formatDate(memory.updated_at)}</span>
                     </div>
                   )}
-                  {memory.metadata && Object.keys(memory.metadata).length > 0 && (
-                    <div className="flex items-center gap-1">
-                      <Tag className="h-3 w-3 text-muted-foreground" />
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(memory.metadata).map(([key, value]) => (
-                          <Badge key={key} variant="secondary" className="text-xs">
-                            {key}: {String(value)}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pt-4">
                     <Badge variant="outline" className="text-xs">
-                      ID: {memory.id.substring(0, 8)}...
+                      Id: {memory.id.substring(0, 16)}...
                     </Badge>
                     {memory.score && (
                       <Badge variant="secondary" className="text-xs">

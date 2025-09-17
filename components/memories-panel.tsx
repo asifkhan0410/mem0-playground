@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Brain, Calendar, Tag, RefreshCw } from 'lucide-react';
 import { Memory } from '@/types';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface MemoriesPanelProps {
   conversationId?: string;
@@ -22,9 +23,12 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
   const [newMemoriesCount, setNewMemoriesCount] = useState(0);
   const [newMemoryIds, setNewMemoryIds] = useState<Set<string>>(new Set());
 
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 100);
+
   useEffect(() => {
     fetchMemories();
-  }, [searchQuery]);
+  }, [debouncedSearchQuery]);
 
   useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
@@ -36,7 +40,7 @@ export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (searchQuery) params.set('query', searchQuery);
+      if (debouncedSearchQuery) params.set('query', debouncedSearchQuery);
       params.set('limit', '20');
       
       const response = await fetch(`/api/memories?${params}`);
