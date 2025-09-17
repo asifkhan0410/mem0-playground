@@ -141,8 +141,15 @@ export function MemoriesPanel({
           {isLoading && memories.length === 0 ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <Shimmer key={i}>
-                  <div className="h-24 bg-muted rounded-md"></div>
+                <Shimmer key={i} className="rounded-lg">
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                      </div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                    </CardContent>
+                  </Card>
                 </Shimmer>
               ))}
             </div>
