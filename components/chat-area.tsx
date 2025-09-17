@@ -511,7 +511,7 @@ export function ChatArea({
                           if (memoryCount > 0) {
                             return (
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-between gap-2">
                                   <Badge variant="outline" className="text-xs">
                                     <Brain className="h-3 w-3 mr-1" />
                                     Referenced {memoryCount} memories

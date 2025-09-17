@@ -53,13 +53,13 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
   }
 
   return (
-    <div className="mt-4 p-4 bg-muted/20 rounded-lg border">
+    <div className="mt-4 p-2 bg-muted/20 rounded-lg border">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4" />
           <h3 className="font-medium text-sm">Relevant Memories</h3>
         </div>
-        {onClose && (
+        {/* {onClose && (
           <Button
             variant="ghost"
             size="sm"
@@ -68,7 +68,7 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
           >
             <X className="h-3 w-3" />
           </Button>
-        )}
+        )} */}
       </div>
 
       {isLoading ? (
@@ -89,19 +89,19 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {memories.map((memory) => (
             <Card key={memory.id} className="group hover:shadow-md transition-shadow">
-              <CardContent className="p-3">
-                <div className="flex justify-between items-start mb-2">
+              <CardContent className="p-2">
+                <div className="flex justify-between items-start mb-4">
                   <Badge 
                     variant="outline" 
                     className="text-xs bg-orange-50 text-orange-700 border-orange-200"
                   >
                     {memory.score.toFixed(2)}
                   </Badge>
-                  <div className="w-5 h-5 bg-gray-100 rounded text-xs flex items-center justify-center text-gray-600">
+                  <div className="w-5 h-5 bg-muted rounded-full text-xs flex items-center justify-center text-gray-500">
                     {memory.index}
                   </div>
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">
+                <p className="text-sm text-gray-500 dark:text-white/50 leading-relaxed">
                   {memory.text}
                 </p>
               </CardContent>
