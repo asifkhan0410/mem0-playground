@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
-import Mem0Service from '@/lib/mem0';
+import { Mem0Service } from '@/lib/mem0';
 
-export async function PUT(
+export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -14,41 +14,16 @@ export async function PUT(
     
     const { user } = authResult;
 
-    const { text } = await request.json();
-    const success = await Mem0Service.updateMemory(params.id, text);
-
-    if (!success) {
-      return NextResponse.json({ error: 'Failed to update memory' }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error updating memory:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const authResult = await requireAuth();
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    // Fetch memory details from Mem0
+    const memory = await Mem0Service.getMemoryById(user.id, params.id);
     
-    const { user } = authResult;
-
-    const success = await Mem0Service.deleteMemory(params.id);
-
-    if (!success) {
-      return NextResponse.json({ error: 'Failed to delete memory' }, { status: 500 });
+    if (!memory) {
+      return NextResponse.json({ error: 'Memory not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ memory });
   } catch (error) {
-    console.error('Error deleting memory:', error);
+    console.error('Error fetching memory:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

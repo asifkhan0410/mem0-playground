@@ -1,11 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, RotateCcw, Pencil, Trash2 } from 'lucide-react';
-import { MemoryActivity } from '@/types';
+import { Plus, RotateCcw, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { MemoryActivity, Memory } from '@/types';
 
 interface MessageActivityDetailsProps {
   activity: MemoryActivity;
@@ -13,9 +14,94 @@ interface MessageActivityDetailsProps {
 }
 
 export function MessageActivityDetails({ activity, messageContent }: MessageActivityDetailsProps) {
+  const [memoryDetails, setMemoryDetails] = useState<Record<string, Memory>>({});
+  const [loadingMemories, setLoadingMemories] = useState<Set<string>>(new Set());
+
   const addedMemories = activity.details.filter(link => link.operation === 'add');
   const updatedMemories = activity.details.filter(link => link.operation === 'update');
   const deletedMemories = activity.details.filter(link => link.operation === 'delete');
+
+  useEffect(() => {
+    // Fetch memory details for all memory links
+    const allMemoryIds = activity.details.map(link => link.mem0_id);
+    fetchMemoryDetails(allMemoryIds);
+  }, [activity.details]);
+
+  const fetchMemoryDetails = async (memoryIds: string[]) => {
+    for (const memoryId of memoryIds) {
+      if (memoryDetails[memoryId]) continue; // Already fetched
+      
+      setLoadingMemories(prev => {
+        const newSet = new Set(prev);
+        newSet.add(memoryId);
+        return newSet;
+      });
+      
+      try {
+        const response = await fetch(`/api/memories/${memoryId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMemoryDetails(prev => ({
+            ...prev,
+            [memoryId]: data.memory
+          }));
+        }
+      } catch (error) {
+        console.error(`Error fetching memory ${memoryId}:`, error);
+      } finally {
+        setLoadingMemories(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(memoryId);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const MemoryCard = ({ link, type }: { link: any, type: 'add' | 'update' | 'delete' }) => {
+    const memory = memoryDetails[link.mem0_id];
+    const isLoading = loadingMemories.has(link.mem0_id);
+    
+    const bgColor = type === 'add' ? 'bg-green-50 dark:bg-green-950/20' : 
+                   type === 'update' ? 'bg-yellow-50 dark:bg-yellow-950/20' : 
+                   'bg-red-50 dark:bg-red-950/20';
+    
+    const textColor = type === 'add' ? 'text-green-600' : 
+                     type === 'update' ? 'text-yellow-600' : 
+                     'text-red-600';
+
+    return (
+      <div className={`p-3 border rounded-md ${bgColor}`}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <p className="text-sm">Loading memory details...</p>
+              </div>
+            ) : memory ? (
+              <div>
+                <p className="text-sm font-medium mb-2">{memory.text}</p>
+                <p className="text-xs text-muted-foreground">
+                  ID: {link.mem0_id} • {new Date(link.created_at).toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-medium">Memory ID: {link.mem0_id}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Created {new Date(link.created_at).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {type === 'add' ? 'New' : type === 'update' ? 'Modified' : 'Removed'}
+          </Badge>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -51,19 +137,7 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
               </CardHeader>
               <CardContent className="space-y-3">
                 {addedMemories.map((link) => (
-                  <div key={link.id} className="p-3 border rounded-md bg-green-50 dark:bg-green-950/20">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Memory ID: {link.mem0_id}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Created {new Date(link.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        New
-                      </Badge>
-                    </div>
-                  </div>
+                  <MemoryCard key={link.id} link={link} type="add" />
                 ))}
               </CardContent>
             </Card>
@@ -77,19 +151,7 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
               </CardHeader>
               <CardContent className="space-y-3">
                 {updatedMemories.map((link) => (
-                  <div key={link.id} className="p-3 border rounded-md bg-yellow-50 dark:bg-yellow-950/20">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Memory ID: {link.mem0_id}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Updated {new Date(link.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Modified
-                      </Badge>
-                    </div>
-                  </div>
+                  <MemoryCard key={link.id} link={link} type="update" />
                 ))}
               </CardContent>
             </Card>
@@ -103,25 +165,7 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
               </CardHeader>
               <CardContent className="space-y-3">
                 {deletedMemories.map((link) => (
-                  <div key={link.id} className="p-3 border rounded-md bg-red-50 dark:bg-red-950/20">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium opacity-60">Memory ID: {link.mem0_id}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Deleted {new Date(link.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant="secondary" className="text-xs opacity-60">
-                          Removed
-                        </Badge>
-                        <Button size="sm" variant="ghost" className="text-xs h-6 px-2">
-                          <RotateCcw className="w-3 h-3 mr-1" />
-                          Undo
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                  <MemoryCard key={link.id} link={link} type="delete" />
                 ))}
               </CardContent>
             </Card>

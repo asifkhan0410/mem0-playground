@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-server';
 import { Mem0Service } from '@/lib/mem0';
+import db from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
@@ -14,55 +15,54 @@ export async function GET(
     
     const { user } = authResult;
 
-    // Extract memory IDs from the message content
-    const messageResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/messages/${params.id}`);
-    if (!messageResponse.ok) {
-      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
-    }
-    
-    const messageData = await messageResponse.json();
-    const message = messageData.message;
+    // Get the message directly from the database
+    const message = db.prepare(`
+      SELECT m.*, c.user_id
+      FROM messages m
+      JOIN conversations c ON m.conversation_id = c.id
+      WHERE m.id = ? AND c.user_id = ?
+    `).get(params.id, user.id);
     
     if (!message) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
-    // Extract memory IDs from the content
-    const memoryMatches = message.content.match(/\[memory:([^\]]+)\]/g);
-    if (!memoryMatches || memoryMatches.length === 0) {
+    // Get referenced memories from the database (instant access - no API calls needed!)
+    const memoryReferences = db.prepare(`
+      SELECT 
+        memory_id, 
+        memory_text, 
+        relevance_score, 
+        reference_order, 
+        memory_metadata, 
+        memory_created_at, 
+        memory_updated_at
+      FROM message_memory_references
+      WHERE message_id = ?
+      ORDER BY reference_order ASC
+    `).all(params.id);
+
+    if (!memoryReferences || memoryReferences.length === 0) {
       return NextResponse.json({ memories: [] });
     }
 
-    const memoryIds = memoryMatches.map(match => {
-      const idMatch = match.match(/\[memory:([^\]]+)\]/);
-      return idMatch ? idMatch[1] : null;
-    }).filter(Boolean);
+    // Return memories directly from database (instant!)
+    const memories = memoryReferences.map((ref: any) => {
+      let metadata = {};
+      try {
+        metadata = JSON.parse(ref.memory_metadata || '{}');
+      } catch (error) {
+        console.error('Error parsing memory metadata:', error);
+      }
 
-    // Fetch memory details from Mem0
-    const memories = await Promise.all(
-      memoryIds.map(async (memoryId, index) => {
-        try {
-          const memory = await Mem0Service.getMemoryById(user.id, memoryId);
-          return {
-            id: memoryId,
-            text: memory?.text || 'Memory not found',
-            score: memory?.score || 0,
-            index: index + 1,
-            metadata: memory?.metadata || {}
-          };
-        } catch (error) {
-          console.error(`Error fetching memory ${memoryId}:`, error);
-          return {
-            id: memoryId,
-            text: 'Memory not found',
-            score: 0,
-            index: index + 1,
-            metadata: {}
-          };
-        }
-      })
-    );
-
+      return {
+        id: ref.memory_id,
+        text: ref.memory_text || 'Memory not found',
+        score: ref.relevance_score || 0,
+        index: ref.reference_order,
+        metadata: metadata
+      };
+    });
     return NextResponse.json({ memories });
   } catch (error) {
     console.error('Error fetching referenced memories:', error);

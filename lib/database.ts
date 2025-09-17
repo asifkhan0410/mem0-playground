@@ -55,11 +55,29 @@ export const initDb = () => {
     )
   `);
 
+  // Message memory references table for storing cited memories
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS message_memory_references (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      memory_id TEXT NOT NULL,
+      memory_text TEXT,
+      relevance_score REAL DEFAULT 0,
+      reference_order INTEGER DEFAULT 1,
+      memory_metadata TEXT,
+      memory_created_at TEXT,
+      memory_updated_at TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (message_id) REFERENCES messages (id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indexes
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations (user_id);
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages (conversation_id);
     CREATE INDEX IF NOT EXISTS idx_memory_links_message_id ON memory_links (message_id);
+    CREATE INDEX IF NOT EXISTS idx_message_memory_references_message_id ON message_memory_references (message_id);
   `);
 };
 

@@ -57,6 +57,35 @@ export async function POST(request: NextRequest) {
       VALUES (?, ?, ?, ?)
     `).run(assistantMessageId, conversationId, 'assistant', llmResponse.content);
 
+    // Store referenced memories for instant access with full details
+    if (llmResponse.citedMemories && llmResponse.citedMemories.length > 0) {
+      // Find the corresponding memory details from the search results
+      const referencedMemories = relevantMemories.filter(memory => 
+        llmResponse.citedMemories.includes(memory.id)
+      );
+
+      referencedMemories.forEach((memory, index) => {
+        const referenceId = uuidv4();
+        db.prepare(`
+          INSERT INTO message_memory_references (
+            id, message_id, memory_id, memory_text, relevance_score, 
+            reference_order, memory_metadata, memory_created_at, memory_updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          referenceId, 
+          assistantMessageId, 
+          memory.id, 
+          memory.text,
+          memory.score || 0,
+          index + 1,
+          JSON.stringify(memory.metadata || {}),
+          memory.created_at,
+          memory.updated_at
+        );
+      });
+    }
+
     // Add memory asynchronously (don't wait for completion)
     Mem0Service.addMemory(user.id, content, { conversationId, messageId: userMessageId })
       .then(memoryIds => {
