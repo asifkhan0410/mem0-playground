@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Send, Brain, User, Bot, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Send, Brain, User, Bot, Plus, Minus, RotateCcw, RefreshCw } from 'lucide-react';
 import { Conversation, Message, MemoryActivity } from '@/types';
 import { MessageActivityDetails } from './message-activity-details';
 
@@ -21,6 +21,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messageActivities, setMessageActivities] = useState<Record<string, MemoryActivity>>({});
+  const [failedMessages, setFailedMessages] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +68,59 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
     }
   };
 
+  const retryMessage = async (messageId: string, content: string) => {
+    if (!conversation || isLoading) return;
+
+    setIsLoading(true);
+    setFailedMessages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          content: content,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.userMessage && data.assistantMessage) {
+        // Remove the failed message and add the new messages
+        setMessages(prev => {
+          const filtered = prev.filter(msg => msg.id !== messageId);
+          return [...filtered, data.userMessage, data.assistantMessage];
+        });
+        
+        // Fetch memory activity for the user message after a short delay
+        setTimeout(() => {
+          fetchMessageActivity(data.userMessage.id);
+        }, 2000);
+      } else {
+        // Still failed
+        setFailedMessages(prev => {
+          const newSet = new Set(prev);
+          newSet.add(messageId);
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Error retrying message:', error);
+      setFailedMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.add(messageId);
+        return newSet;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !conversation || isLoading) return;
@@ -74,6 +128,18 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
     const userMessage = input.trim();
     setInput('');
     setIsLoading(true);
+
+    // Create temporary user message to show immediately
+    const tempUserMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversation_id: conversation.id,
+      role: 'user',
+      content: userMessage,
+      created_at: new Date().toISOString(),
+    };
+
+    // Add user message immediately
+    setMessages(prev => [...prev, tempUserMessage]);
 
     try {
       const response = await fetch('/api/messages', {
@@ -88,15 +154,32 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
       const data = await response.json();
       
       if (data.userMessage && data.assistantMessage) {
-        setMessages(prev => [...prev, data.userMessage, data.assistantMessage]);
+        // Replace temp user message with real one and add assistant response
+        setMessages(prev => {
+          const filtered = prev.filter(msg => msg.id !== tempUserMessage.id);
+          return [...filtered, data.userMessage, data.assistantMessage];
+        });
         
         // Fetch memory activity for the user message after a short delay
         setTimeout(() => {
           fetchMessageActivity(data.userMessage.id);
         }, 2000);
+      } else {
+        // API response was successful but didn't return expected data
+        setFailedMessages(prev => {
+          const newSet = new Set(prev);
+          newSet.add(tempUserMessage.id);
+          return newSet;
+        });
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Mark the message as failed instead of removing it
+      setFailedMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.add(tempUserMessage.id);
+        return newSet;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -193,7 +276,26 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
 
                   {message.role === 'user' && (
                     <div className="flex items-center justify-end gap-2 mt-2">
-                      {messageActivities[message.id] ? (
+                      {failedMessages.has(message.id) ? (
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="destructive" 
+                            className="text-xs"
+                          >
+                            failed to send
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-6 px-2"
+                            onClick={() => retryMessage(message.id, message.content)}
+                            disabled={isLoading}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            retry
+                          </Button>
+                        </div>
+                      ) : messageActivities[message.id] ? (
                         <Sheet>
                           <SheetTrigger asChild>
                             <Button 
@@ -219,6 +321,13 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
                             />
                           </SheetContent>
                         </Sheet>
+                      ) : message.id.startsWith('temp-') ? (
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs animate-pulse"
+                        >
+                          processing...
+                        </Badge>
                       ) : (
                         <Badge 
                           variant="secondary" 
