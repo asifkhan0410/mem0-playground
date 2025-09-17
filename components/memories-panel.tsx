@@ -6,21 +6,31 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Brain, Calendar, Tag } from 'lucide-react';
+import { Search, Brain, Calendar, Tag, RefreshCw } from 'lucide-react';
 import { Memory } from '@/types';
 
 interface MemoriesPanelProps {
   conversationId?: string;
+  onMemoryActivity?: (activity: { added: number; updated: number; deleted: number }) => void;
+  refreshTrigger?: number; // A number that changes when memories should be refreshed
 }
 
-export function MemoriesPanel({ conversationId }: MemoriesPanelProps) {
+export function MemoriesPanel({ conversationId, onMemoryActivity, refreshTrigger }: MemoriesPanelProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [newMemoriesCount, setNewMemoriesCount] = useState(0);
+  const [newMemoryIds, setNewMemoryIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchMemories();
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      fetchMemories();
+    }
+  }, [refreshTrigger]);
 
   const fetchMemories = async () => {
     setIsLoading(true);
@@ -32,7 +42,31 @@ export function MemoriesPanel({ conversationId }: MemoriesPanelProps) {
       const response = await fetch(`/api/memories?${params}`);
       const data = await response.json();
       
-      setMemories(data.memories || data.results || []);
+      const newMemories = data.memories || data.results || [];
+      
+      // Track if we have new memories
+      if (memories.length > 0 && newMemories.length > memories.length) {
+        const addedCount = newMemories.length - memories.length;
+        setNewMemoriesCount(addedCount);
+        
+        // Find new memory IDs
+        const existingIds = new Set(memories.map((m: Memory) => m.id));
+        const newIds = newMemories.filter((m: Memory) => !existingIds.has(m.id));
+        setNewMemoryIds(new Set(newIds.map((m: Memory) => m.id)));
+        
+        // Notify parent component about memory activity
+        if (onMemoryActivity) {
+          onMemoryActivity({ added: addedCount, updated: 0, deleted: 0 });
+        }
+        
+        // Clear the new memories indicators after a delay
+        setTimeout(() => {
+          setNewMemoriesCount(0);
+          setNewMemoryIds(new Set());
+        }, 5000);
+      }
+      
+      setMemories(newMemories);
     } catch (error) {
       console.error('Error fetching memories:', error);
     } finally {
@@ -55,9 +89,25 @@ export function MemoriesPanel({ conversationId }: MemoriesPanelProps) {
         <div className="flex items-center gap-2 mb-3">
           <Brain className="h-5 w-5" />
           <h2 className="font-semibold">Memories</h2>
-          <Badge variant="secondary" className="ml-auto">
-            {memories.length}
-          </Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchMemories}
+              disabled={isLoading}
+              className="h-6 w-6 p-0"
+            >
+              <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            {newMemoriesCount > 0 && (
+              <Badge variant="default" className="animate-pulse">
+                +{newMemoriesCount} new
+              </Badge>
+            )}
+            <Badge variant="secondary">
+              {memories.length}
+            </Badge>
+          </div>
         </div>
         
         <div className="relative">
@@ -83,17 +133,31 @@ export function MemoriesPanel({ conversationId }: MemoriesPanelProps) {
             </div>
           ) : memories.length > 0 ? (
             memories.map((memory) => (
-              <Card key={memory.id} className="group hover:shadow-md transition-shadow">
+              <Card 
+                key={memory.id} 
+                className={`group hover:shadow-md transition-all duration-300 ${
+                  newMemoryIds.has(memory.id) 
+                    ? 'ring-2 ring-primary/20 bg-primary/5 animate-pulse' 
+                    : ''
+                }`}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-sm font-medium line-clamp-2">
                       {memory.text}
                     </CardTitle>
-                    {memory.score && (
-                      <Badge variant="outline" className="text-xs shrink-0 ml-2">
-                        {Math.round(memory.score * 100)}%
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {newMemoryIds.has(memory.id) && (
+                        <Badge variant="default" className="text-xs animate-bounce">
+                          NEW
+                        </Badge>
+                      )}
+                      {memory.score && (
+                        <Badge variant="outline" className="text-xs">
+                          {Math.round(memory.score * 100)}%
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>

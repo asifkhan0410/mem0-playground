@@ -14,9 +14,10 @@ interface ChatAreaProps {
   conversation: Conversation | null;
   onToggleMemories: () => void;
   showMemoriesPanel: boolean;
+  onMemoryActivity?: (activity: { added: number; updated: number; deleted: number }) => void;
 }
 
-export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: ChatAreaProps) {
+export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, onMemoryActivity }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,10 +60,20 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel }: 
       const response = await fetch(`/api/messages/${messageId}/activity`);
       const data = await response.json();
       
+      const activity = data.activity;
       setMessageActivities(prev => ({
         ...prev,
-        [messageId]: data.activity,
+        [messageId]: activity,
       }));
+
+      // Notify parent component about memory activity to trigger memories panel refresh
+      if (onMemoryActivity && activity) {
+        onMemoryActivity({
+          added: activity.added || 0,
+          updated: activity.updated || 0,
+          deleted: activity.deleted || 0,
+        });
+      }
     } catch (error) {
       console.error('Error fetching message activity:', error);
     }

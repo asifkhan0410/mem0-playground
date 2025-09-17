@@ -25,6 +25,12 @@ export function ChatLayout({
   onDeleteConversation,
 }: ChatLayoutProps) {
   const [showMemoriesPanel, setShowMemoriesPanel] = useState(true);
+  const [memoriesRefreshTrigger, setMemoriesRefreshTrigger] = useState(0);
+
+  const handleMemoryActivity = (activity: { added: number; updated: number; deleted: number }) => {
+    // Trigger a refresh of the memories panel
+    setMemoriesRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="h-screen flex">
@@ -47,6 +53,7 @@ export function ChatLayout({
             conversation={selectedConversation}
             onToggleMemories={() => setShowMemoriesPanel(!showMemoriesPanel)}
             showMemoriesPanel={showMemoriesPanel}
+            onMemoryActivity={handleMemoryActivity}
           />
         </ResizablePanel>
         
@@ -54,7 +61,11 @@ export function ChatLayout({
           <>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-              <MemoriesPanel conversationId={selectedConversation?.id} />
+              <MemoriesPanel 
+                conversationId={selectedConversation?.id} 
+                refreshTrigger={memoriesRefreshTrigger}
+                onMemoryActivity={handleMemoryActivity}
+              />
             </ResizablePanel>
           </>
         )}
