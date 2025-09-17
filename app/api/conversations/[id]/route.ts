@@ -30,7 +30,7 @@ export async function GET(
 
     return NextResponse.json({ conversation, messages });
   } catch (error) {
-    console.error('Error fetching conversation:', error);
+    // console.error('Error fetching conversation:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -64,7 +64,7 @@ export async function PUT(
 
     return NextResponse.json({ conversation });
   } catch (error) {
-    console.error('Error updating conversation:', error);
+    // console.error('Error updating conversation:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -91,7 +91,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting conversation:', error);
+    // console.error('Error deleting conversation:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

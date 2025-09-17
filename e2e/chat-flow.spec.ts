@@ -46,8 +46,6 @@ test.describe('Chat with Living Memory E2E', () => {
       
       // Check that memory activity details are shown
       await expect(page.getByText('Memory Activity')).toBeVisible();
-    } else {
-      console.log('Memory activity did not appear - this may be expected in test mode');
     }
   });
 
@@ -402,9 +400,7 @@ test.describe('Chat with Living Memory E2E', () => {
     
     // Wait for the API call to complete
     const response = await conversationPromise;
-    console.log('Conversation creation response status:', response.status());
     const responseData = await response.json();
-    console.log('Conversation creation response data:', responseData);
     
     // Wait a bit for the UI to update
     await page.waitForTimeout(1000);

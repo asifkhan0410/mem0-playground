@@ -17,7 +17,7 @@ export async function GET(
 
     // Get memory links for this message
     const memoryLinks = db.prepare(`
-      SELECT ml.*, m.conversation_id
+      SELECT ml.id, ml.message_id, ml.mem0_id, ml.operation, ml.old_content, ml.new_content, ml.created_at, m.conversation_id
       FROM memory_links ml
       JOIN messages m ON ml.message_id = m.id
       JOIN conversations c ON m.conversation_id = c.id
@@ -43,7 +43,7 @@ export async function GET(
     
     return response;
   } catch (error) {
-    console.error('Error fetching message activity:', error);
+    // console.error('Error fetching message activity:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

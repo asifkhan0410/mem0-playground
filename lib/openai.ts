@@ -32,7 +32,6 @@ export class OpenAIService {
     memories: Memory[] = []
   ): Promise<LLMResponse> {
     if (!openai) {
-      console.warn('OpenAI client not initialized - API key missing');
       return {
         content: 'I apologize, but I am currently unable to generate responses. Please check the API configuration.',
         citedMemories: [],
@@ -73,10 +72,8 @@ Guidelines:
             temperature: 0.7,
             max_tokens: 1000,
           });
-          console.log(`Successfully used model: ${model}`);
           break; // Success, exit the loop
         } catch (error: any) {
-          console.warn(`Model ${model} failed:`, error.message);
           lastError = error;
           continue; // Try next model
         }
@@ -102,7 +99,6 @@ Guidelines:
         citedMemories: Array.from(new Set(citedMemories)), // Remove duplicates
       };
     } catch (error) {
-      console.error('Error generating response:', error);
       throw new Error('Failed to generate response');
     }
   }

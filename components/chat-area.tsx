@@ -29,6 +29,7 @@ interface ChatAreaProps {
     updated: number;
     deleted: number;
   }) => void;
+  onNewMessage?: (messageId: string) => void;
 }
 
 export function ChatArea({
@@ -36,6 +37,7 @@ export function ChatArea({
   onToggleMemories,
   showMemoriesPanel,
   onMemoryActivity,
+  onNewMessage,
 }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -59,6 +61,18 @@ export function ChatArea({
       setFetchingActivity(new Set());
     }
   }, [conversation]);
+
+  // Set current message context when messages are loaded or updated
+  useEffect(() => {
+    if (messages.length > 0 && onNewMessage) {
+      // Find the most recent user message to set as current context
+      const userMessages = messages.filter(msg => msg.role === 'user');
+      if (userMessages.length > 0) {
+        const mostRecentUserMessage = userMessages[userMessages.length - 1];
+        onNewMessage(mostRecentUserMessage.id);
+      }
+    }
+  }, [messages, onNewMessage]);
 
   useEffect(() => {
     scrollToBottom();
@@ -88,7 +102,7 @@ export function ChatArea({
         }
       });
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      // Error fetching messages
     }
   };
 
@@ -152,7 +166,7 @@ export function ChatArea({
         });
       }
     } catch (error) {
-      console.error("Error fetching message activity:", error);
+      // Error fetching message activity
       // Retry on error if we haven't exceeded limit
       if (retryCount < 3) { // Reduced from 5 to 3 retries
         setTimeout(() => {
@@ -207,6 +221,11 @@ export function ChatArea({
 
         // Start polling for memory activity immediately
         fetchMessageActivity(data.userMessage.id);
+        
+        // Notify parent about new message for context tracking
+        if (onNewMessage) {
+          onNewMessage(data.userMessage.id);
+        }
       } else {
         // Still failed
         setFailedMessages((prev) => {
@@ -216,7 +235,7 @@ export function ChatArea({
         });
       }
     } catch (error) {
-      console.error("Error retrying message:", error);
+      // Error retrying message
       setFailedMessages((prev) => {
         const newSet = new Set(prev);
         newSet.add(messageId);
@@ -258,7 +277,6 @@ export function ChatArea({
       });
 
       const data = await response.json();
-
       if (data.userMessage && data.assistantMessage) {
         // Replace temp user message with real one and add assistant response
         setMessages((prev) => {
@@ -268,6 +286,11 @@ export function ChatArea({
 
         // Start polling for memory activity immediately
         fetchMessageActivity(data.userMessage.id);
+        
+        // Notify parent about new message for context tracking
+        if (onNewMessage) {
+          onNewMessage(data.userMessage.id);
+        }
       } else {
         // API response was successful but didn't return expected data
         setFailedMessages((prev) => {
@@ -277,7 +300,7 @@ export function ChatArea({
         });
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      // Error sending message
       // Mark the message as failed instead of removing it
       setFailedMessages((prev) => {
         const newSet = new Set(prev);

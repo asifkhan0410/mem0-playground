@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Brain, Calendar, Tag, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Brain, Calendar, Tag, RefreshCw, Edit2, Trash2 } from "lucide-react";
 import { Memory } from "@/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Shimmer } from "@/components/shimmer";
@@ -19,18 +21,25 @@ interface MemoriesPanelProps {
     deleted: number;
   }) => void;
   refreshTrigger?: number; // A number that changes when memories should be refreshed
+  currentMessageId?: string; // Current message context for linking memory operations
 }
 
 export function MemoriesPanel({
   conversationId,
   onMemoryActivity,
   refreshTrigger,
+  currentMessageId,
 }: MemoriesPanelProps) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [newMemoriesCount, setNewMemoriesCount] = useState(0);
   const [newMemoryIds, setNewMemoryIds] = useState<Set<string>>(new Set());
+  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
+  const [editText, setEditText] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deletingMemory, setDeletingMemory] = useState<Memory | null>(null);
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 100);
@@ -83,7 +92,7 @@ export function MemoriesPanel({
 
       setMemories(newMemories);
     } catch (error) {
-      console.error("Error fetching memories:", error);
+      // console.error("Error fetching memories:", error);
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +105,90 @@ export function MemoriesPanel({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleEdit = (memory: Memory) => {
+    setEditingMemory(memory);
+    setEditText(memory.text);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingMemory && editText.trim() && !isUpdating) {
+      setIsUpdating(true);
+      try {
+        const response = await fetch(`/api/memories/${editingMemory.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: editText.trim(),
+            messageId: currentMessageId // Pass current message context
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Update the memory in the list
+          setMemories(prev => 
+            prev.map(memory => 
+              memory.id === editingMemory.id ? { ...memory, ...data.memory } : memory
+            )
+          );
+          
+          // Notify parent about update activity
+          if (onMemoryActivity) {
+            onMemoryActivity({ added: 0, updated: 1, deleted: 0 });
+          }
+          
+          setEditingMemory(null);
+          setEditText("");
+        } else {
+          const errorData = await response.json();
+          // console.error('Error updating memory:', errorData.error);
+        }
+      } catch (error) {
+        // console.error('Error updating memory:', error);
+      } finally {
+        setIsUpdating(false);
+      }
+    }
+  };
+
+  const handleDeleteClick = (memory: Memory) => {
+    setDeletingMemory(memory);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deletingMemory && !isDeleting) {
+      setIsDeleting(deletingMemory.id);
+      try {
+        const response = await fetch(`/api/memories/${deletingMemory.id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messageId: currentMessageId // Pass current message context
+          }),
+        });
+        
+        if (response.ok) {
+          // Remove the memory from the list
+          setMemories(prev => prev.filter(memory => memory.id !== deletingMemory.id));
+          
+          // Notify parent about delete activity
+          if (onMemoryActivity) {
+            onMemoryActivity({ added: 0, updated: 0, deleted: 1 });
+          }
+          
+          setDeletingMemory(null);
+        } else {
+          const errorData = await response.json();
+          // console.error('Error deleting memory:', errorData.error);
+        }
+      } catch (error) {
+        // console.error('Error deleting memory:', error);
+      } finally {
+        setIsDeleting(null);
+      }
+    }
   };
 
   return (
@@ -166,7 +259,7 @@ export function MemoriesPanel({
               >
                 <CardHeader className="p-3 pb-2">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-sm font-medium line-clamp-2">
+                    <CardTitle className="text-sm font-medium line-clamp-2 flex-1">
                       {memory.text}
                     </CardTitle>
                     <div className="flex items-center gap-1 shrink-0 ml-2">
@@ -183,6 +276,31 @@ export function MemoriesPanel({
                           {Math.round(memory.score * 100)}%
                         </Badge>
                       )}
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleEdit(memory)}
+                          aria-label="Edit memory"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteClick(memory)}
+                          disabled={isDeleting === memory.id}
+                          aria-label="Delete memory"
+                        >
+                          {isDeleting === memory.id ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -214,6 +332,98 @@ export function MemoriesPanel({
           ) : null}
         </div>
       </ScrollArea>
+
+      {/* Edit Memory Dialog */}
+      <Dialog
+        open={!!editingMemory}
+        onOpenChange={() => setEditingMemory(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Memory</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Memory Text</label>
+              <Textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={4}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingMemory(null)}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveEdit} 
+                disabled={isUpdating || !editText.trim()}
+              >
+                {isUpdating ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Memory Dialog */}
+      <Dialog
+        open={!!deletingMemory}
+        onOpenChange={() => setDeletingMemory(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Memory</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this memory?
+              </p>
+              {deletingMemory && (
+                <div className="mt-3 p-3 bg-muted rounded-md">
+                  <p className="text-sm line-clamp-3">{deletingMemory.text}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeletingMemory(null)}
+                disabled={!!isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleDeleteConfirm} 
+                disabled={!!isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Memory'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

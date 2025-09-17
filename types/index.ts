@@ -27,6 +27,8 @@ export interface MemoryLink {
   message_id: string;
   mem0_id: string;
   operation: 'add' | 'update' | 'delete';
+  old_content?: string;
+  new_content?: string;
   created_at: string;
 }
 

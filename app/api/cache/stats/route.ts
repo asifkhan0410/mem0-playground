@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error getting cache stats:', error);
+    // console.error('Error getting cache stats:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -35,7 +35,7 @@ export async function DELETE(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error clearing cache:', error);
+    // console.error('Error clearing cache:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

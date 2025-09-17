@@ -26,10 +26,15 @@ export function ChatLayout({
 }: ChatLayoutProps) {
   const [showMemoriesPanel, setShowMemoriesPanel] = useState(true);
   const [memoriesRefreshTrigger, setMemoriesRefreshTrigger] = useState(0);
+  const [currentMessageId, setCurrentMessageId] = useState<string | undefined>();
 
   const handleMemoryActivity = (activity: { added: number; updated: number; deleted: number }) => {
     // Trigger a refresh of the memories panel
     setMemoriesRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleNewMessage = (messageId: string) => {
+    setCurrentMessageId(messageId);
   };
 
   return (
@@ -54,6 +59,7 @@ export function ChatLayout({
             onToggleMemories={() => setShowMemoriesPanel(!showMemoriesPanel)}
             showMemoriesPanel={showMemoriesPanel}
             onMemoryActivity={handleMemoryActivity}
+            onNewMessage={handleNewMessage}
           />
         </ResizablePanel>
         
@@ -65,6 +71,7 @@ export function ChatLayout({
                 conversationId={selectedConversation?.id} 
                 refreshTrigger={memoriesRefreshTrigger}
                 onMemoryActivity={handleMemoryActivity}
+                currentMessageId={currentMessageId}
               />
             </ResizablePanel>
           </>

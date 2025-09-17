@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(result);
     }
   } catch (error) {
-    console.error('Error fetching memories:', error);
+    // console.error('Error fetching memories:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

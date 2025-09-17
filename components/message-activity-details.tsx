@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Plus, RotateCcw, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { MemoryActivity, Memory } from '@/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, RotateCcw, Pencil, Trash2, Loader2, CheckCircle } from 'lucide-react';
+import { MemoryActivity, Memory, MemoryLink } from '@/types';
 
 interface MessageActivityDetailsProps {
   activity: MemoryActivity;
@@ -16,6 +17,8 @@ interface MessageActivityDetailsProps {
 export function MessageActivityDetails({ activity, messageContent }: MessageActivityDetailsProps) {
   const [memoryDetails, setMemoryDetails] = useState<Record<string, Memory>>({});
   const [loadingMemories, setLoadingMemories] = useState<Set<string>>(new Set());
+  const [restoringMemories, setRestoringMemories] = useState<Set<string>>(new Set());
+  const [restoredMemories, setRestoredMemories] = useState<Set<string>>(new Set());
 
   const addedMemories = activity.details.filter(link => link.operation === 'add');
   const updatedMemories = activity.details.filter(link => link.operation === 'update');
@@ -47,7 +50,7 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
           }));
         }
       } catch (error) {
-        console.error(`Error fetching memory ${memoryId}:`, error);
+        // console.error(`Error fetching memory ${memoryId}:`, error);
       } finally {
         setLoadingMemories(prev => {
           const newSet = new Set(prev);
@@ -58,9 +61,64 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
     }
   };
 
-  const MemoryCard = ({ link, type }: { link: any, type: 'add' | 'update' | 'delete' }) => {
+  const restoreMemory = async (memoryId: string) => {
+    setRestoringMemories(prev => {
+      const newSet = new Set(prev);
+      newSet.add(memoryId);
+      return newSet;
+    });
+
+    try {
+      const response = await fetch(`/api/memories/${memoryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore' }),
+      });
+
+      if (response.ok) {
+        setRestoredMemories(prev => {
+          const newSet = new Set(prev);
+          newSet.add(memoryId);
+          return newSet;
+        });
+      } else {
+        // console.error('Failed to restore memory');
+      }
+    } catch (error) {
+      // console.error('Error restoring memory:', error);
+    } finally {
+      setRestoringMemories(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(memoryId);
+        return newSet;
+      });
+    }
+  };
+
+  const createDiffView = (oldText: string, newText: string) => {
+    // Simple word-level diff for inline display
+    const oldWords = oldText.split(' ');
+    const newWords = newText.split(' ');
+    
+    return (
+      <div className="space-y-2">
+        <div className="text-xs font-medium text-red-600">Before:</div>
+        <div className="p-2 bg-red-50 dark:bg-red-950/20 rounded text-sm">
+          {oldText}
+        </div>
+        <div className="text-xs font-medium text-green-600">After:</div>
+        <div className="p-2 bg-green-50 dark:bg-green-950/20 rounded text-sm">
+          {newText}
+        </div>
+      </div>
+    );
+  };
+
+  const MemoryCard = ({ link, type }: { link: MemoryLink, type: 'add' | 'update' | 'delete' }) => {
     const memory = memoryDetails[link.mem0_id];
     const isLoading = loadingMemories.has(link.mem0_id);
+    const isRestoring = restoringMemories.has(link.mem0_id);
+    const isRestored = restoredMemories.has(link.mem0_id);
     
     const bgColor = type === 'add' ? 'bg-green-50 dark:bg-green-950/20' : 
                    type === 'update' ? 'bg-yellow-50 dark:bg-yellow-950/20' : 
@@ -70,6 +128,100 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
                      type === 'update' ? 'text-yellow-600' : 
                      'text-red-600';
 
+    if (type === 'delete') {
+      // Ghost card for deleted memories
+      return (
+        <div className={`p-3 border-2 border-dashed rounded-md ${bgColor} ${isRestored ? 'opacity-50' : ''}`}>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              {isRestored ? (
+                <Alert className="mb-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Memory has been restored successfully!
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              
+              <div className={isRestored ? 'opacity-50' : ''}>
+                <p className="text-sm font-medium mb-2 line-through">
+                  {link.old_content || `Memory ID: ${link.mem0_id}`}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Deleted {new Date(link.created_at).toLocaleString()}
+                </p>
+                {!link.old_content && (
+                  <div className="text-xs text-muted-foreground mt-1 p-2 bg-gray-100 rounded">
+                    Content not available for restoration
+                  </div>
+                )}
+              </div>
+              
+              {!isRestored && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => restoreMemory(link.mem0_id)}
+                  disabled={isRestoring}
+                >
+                  {isRestoring ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      Restoring...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      Undo Delete
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <Badge variant="destructive" className="text-xs">
+              Deleted
+            </Badge>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'update') {
+      // Show diff for updated memories
+      return (
+        <div className={`p-3 border rounded-md ${bgColor}`}>
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Pencil className="w-3 h-3" />
+                <span className="text-xs font-medium">Memory Updated</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ID: {link.mem0_id} • {new Date(link.created_at).toLocaleString()}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs border-yellow-200 text-yellow-600">
+              Modified
+            </Badge>
+          </div>
+          
+          {link.old_content && link.new_content ? (
+            createDiffView(link.old_content, link.new_content)
+          ) : (
+            <div>
+              <p className="text-sm font-medium mb-2">{memory?.text || 'Updated memory content'}</p>
+              <div className="text-xs text-muted-foreground mt-2 p-2 bg-gray-100 rounded">
+                <div>Old: "{link.old_content || 'Not available'}"</div>
+                <div>New: "{link.new_content || 'Not available'}"</div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Default card for added memories
     return (
       <div className={`p-3 border rounded-md ${bgColor}`}>
         <div className="flex items-start justify-between">
@@ -95,8 +247,8 @@ export function MessageActivityDetails({ activity, messageContent }: MessageActi
               </div>
             )}
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {type === 'add' ? 'New' : type === 'update' ? 'Modified' : 'Removed'}
+          <Badge variant="outline" className="text-xs border-green-200 text-green-600">
+            New
           </Badge>
         </div>
       </div>

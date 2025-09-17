@@ -35,7 +35,7 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
       const data = await response.json();
       setMemories(data.memories || []);
     } catch (error) {
-      console.error('Error fetching referenced memories:', error);
+      // console.error('Error fetching referenced memories:', error);
     } finally {
       setIsLoading(false);
     }

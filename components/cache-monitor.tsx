@@ -25,7 +25,7 @@ export function CacheMonitor() {
       setStats(data.cache);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Failed to fetch cache stats:', error);
+      // console.error('Failed to fetch cache stats:', error);
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,7 @@ export function CacheMonitor() {
       await fetch('/api/cache/stats', { method: 'DELETE' });
       await fetchStats(); // Refresh stats after clearing
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      // console.error('Failed to clear cache:', error);
     } finally {
       setLoading(false);
     }

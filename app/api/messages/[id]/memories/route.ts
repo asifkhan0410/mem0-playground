@@ -52,7 +52,7 @@ export async function GET(
       try {
         metadata = JSON.parse(ref.memory_metadata || '{}');
       } catch (error) {
-        console.error('Error parsing memory metadata:', error);
+        // console.error('Error parsing memory metadata:', error);
       }
 
       return {
@@ -65,7 +65,7 @@ export async function GET(
     });
     return NextResponse.json({ memories });
   } catch (error) {
-    console.error('Error fetching referenced memories:', error);
+    // console.error('Error fetching referenced memories:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

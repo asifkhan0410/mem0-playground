@@ -29,7 +29,7 @@ export async function getAuthenticatedUser(request?: NextRequest) {
     
     return user;
   } catch (error) {
-    console.error('Error getting authenticated user:', error);
+    // console.error('Error getting authenticated user:', error);
     return null;
   }
 }

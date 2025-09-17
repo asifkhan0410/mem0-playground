@@ -33,7 +33,7 @@ export default function ChatPage() {
         setSelectedConversation(data.conversations[0]);
       }
     } catch (error) {
-      console.error('Error fetching conversations:', error);
+      // console.error('Error fetching conversations:', error);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +53,7 @@ export default function ChatPage() {
         setSelectedConversation(data.conversation);
       }
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      // console.error('Error creating conversation:', error);
     }
   };
 
@@ -75,7 +75,7 @@ export default function ChatPage() {
         }
       }
     } catch (error) {
-      console.error('Error updating conversation:', error);
+      // console.error('Error updating conversation:', error);
     }
   };
 
@@ -93,7 +93,7 @@ export default function ChatPage() {
         }
       }
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      // console.error('Error deleting conversation:', error);
     }
   };
 

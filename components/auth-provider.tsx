@@ -82,7 +82,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             router.push('/chat');
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('Signed out');
+          // console.log('Signed out');
         }
         // For 'TOKEN_REFRESHED' events, don't redirect - just update the user state
       }

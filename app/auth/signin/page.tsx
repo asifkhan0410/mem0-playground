@@ -47,7 +47,7 @@ export default function SignIn() {
         setEmailSent(true);
       }
     } catch (error) {
-      console.error("Email sign-in error:", error);
+      // console.error("Email sign-in error:", error);
     } finally {
       setIsLoading(false);
     }

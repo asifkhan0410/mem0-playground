@@ -36,7 +36,7 @@ export const initDb = () => {
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       conversation_id TEXT NOT NULL,
-      role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+      role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
       content TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE CASCADE
@@ -50,6 +50,8 @@ export const initDb = () => {
       message_id TEXT NOT NULL,
       mem0_id TEXT NOT NULL,
       operation TEXT NOT NULL CHECK (operation IN ('add', 'update', 'delete')),
+      old_content TEXT,
+      new_content TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (message_id) REFERENCES messages (id) ON DELETE CASCADE
     )
