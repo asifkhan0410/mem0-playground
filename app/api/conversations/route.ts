@@ -3,9 +3,9 @@ import { requireAuth } from '@/lib/auth-server';
 import db from '@/lib/database';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }
@@ -26,7 +26,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }

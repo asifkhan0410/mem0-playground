@@ -186,7 +186,7 @@ export function ConversationsSidebar({
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm">No conversations yet</p>
-              <p className="text-xs">Click "New Chat" to start</p>
+              <p className="text-xs">Click the button below to start</p>
             </div>
           )}
         </div>
@@ -195,6 +195,7 @@ export function ConversationsSidebar({
         <Button
           onClick={() => onCreateConversation()}
           className="w-full"
+          aria-label="New Chat"
           size="sm"
         >
           <Plus className="mr-2 h-4 w-4" />

@@ -359,6 +359,7 @@ export function ChatArea({
           variant="outline"
           size="sm"
           onClick={onToggleMemories}
+          aria-label={showMemoriesPanel ? "Hide Memories" : "Show Memories"}
           className="flex items-center gap-2"
         >
           <Brain className="h-4 w-4" />
@@ -453,6 +454,7 @@ export function ChatArea({
                             <Button
                               variant="ghost"
                               size="sm"
+                              aria-label="Show memory activity"
                               className="text-xs h-6 px-2"
                             >
                               <span className="text-green-600 mr-1">
@@ -478,7 +480,7 @@ export function ChatArea({
                           variant="secondary"
                           className="text-xs animate-pulse"
                         >
-                          processing...
+                          extracting memory...
                         </Badge>
                       ) : (
                         <Badge
@@ -596,9 +598,10 @@ export function ChatArea({
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
               disabled={isLoading}
+              aria-label="Type your message..."
               className="flex-1"
             />
-            <Button type="submit" disabled={!input.trim() || isLoading}>
+            <Button type="submit" disabled={!input.trim() || isLoading} aria-label="Send">
               <Send className="h-4 w-4" />
             </Button>
           </div>

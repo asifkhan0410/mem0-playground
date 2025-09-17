@@ -24,7 +24,7 @@ export class CacheService {
   static getSearchResults(userId: string, query: string): any[] | undefined {
     const key = `search:${userId}:${query}`;
     const result = searchCache.get(key);
-    return result === null ? undefined : result;
+    return result === null ? undefined : result as any[];
   }
 
   static setSearchResults(userId: string, query: string, results: any[]): void {

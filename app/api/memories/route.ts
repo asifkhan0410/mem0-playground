@@ -4,7 +4,7 @@ import Mem0Service from '@/lib/mem0';
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth(request);
     if (authResult instanceof NextResponse) {
       return authResult;
     }

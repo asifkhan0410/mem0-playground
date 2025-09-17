@@ -168,6 +168,7 @@ export function MemoriesLibrary({
             {memories.map((memory) => (
               <Card
                 key={memory.id}
+                data-testid="memory-card"
                 className="group hover:shadow-lg transition-shadow"
               >
                 <CardHeader className="p-4">
@@ -179,6 +180,7 @@ export function MemoriesLibrary({
                       <Button
                         variant="ghost"
                         size="sm"
+                        aria-label="Edit"
                         onClick={() => handleEdit(memory)}
                       >
                         <Edit2 className="h-3 w-3" />
@@ -188,6 +190,7 @@ export function MemoriesLibrary({
                          size="sm"
                          onClick={() => handleDeleteClick(memory)}
                          disabled={isDeleting === memory.id}
+                         aria-label="Delete"
                          className="text-destructive hover:text-destructive"
                        >
                          {isDeleting === memory.id ? (
@@ -308,7 +311,7 @@ export function MemoriesLibrary({
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">
-                Are you sure you want to delete this memory? This action cannot be undone.
+                Are you sure you want to delete this memory?
               </p>
               {deletingMemory && (
                 <div className="mt-3 p-3 bg-muted rounded-md">
