@@ -1,16 +1,23 @@
-'use client';
+"use client";
 
-import { createClient } from '@/lib/supabase/client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Github, Mail, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/components/auth-provider';
+import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Github, Mail, MessageSquare } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { toast } from "sonner";
 
 export default function SignIn() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { user, loading } = useAuth();
@@ -19,7 +26,7 @@ export default function SignIn() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/chat');
+      router.push("/chat");
     }
   }, [user, loading, router]);
 
@@ -33,34 +40,14 @@ export default function SignIn() {
           emailRedirectTo: `${window.location.origin}/chat`,
         },
       });
-      
+
       if (error) {
-        console.error('Email sign-in failed:', error.message);
+        toast.error(error.message ?? "Email sign-in failed");
       } else {
         setEmailSent(true);
       }
     } catch (error) {
-      console.error('Email sign-in error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGitHubSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/chat`,
-        },
-      });
-      
-      if (error) {
-        console.error('GitHub sign-in failed:', error.message);
-      }
-    } catch (error) {
-      console.error('GitHub sign-in error:', error);
+      console.error("Email sign-in error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -69,11 +56,13 @@ export default function SignIn() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center mb-10">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
             <MessageSquare className="h-6 w-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">Chat with Living Memory</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Chat with Living Memory
+          </CardTitle>
           <CardDescription>
             Sign in to start chatting with an AI that remembers
           </CardDescription>
@@ -96,7 +85,7 @@ export default function SignIn() {
               <Button
                 onClick={() => {
                   setEmailSent(false);
-                  setEmail('');
+                  setEmail("");
                 }}
                 variant="outline"
                 className="w-full"
@@ -106,7 +95,7 @@ export default function SignIn() {
             </div>
           ) : (
             <>
-              <Button
+              {/* <Button
                 onClick={handleGitHubSignIn}
                 disabled={isLoading}
                 className="w-full"
@@ -115,15 +104,17 @@ export default function SignIn() {
                 <Github className="mr-2 h-4 w-4" />
                 Continue with GitHub
               </Button>
-              
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or
+                  </span>
                 </div>
-              </div>
+              </div> */}
 
               <form onSubmit={handleEmailSignIn} className="space-y-4">
                 <div>
@@ -140,8 +131,17 @@ export default function SignIn() {
                   disabled={isLoading || !email}
                   className="w-full"
                 >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Continue with Email
+                  {isLoading ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border border-current border-t-transparent mr-2" />
+                      Sending sign-in link...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Continue with Email
+                    </>
+                  )}
                 </Button>
               </form>
             </>

@@ -20,9 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      {/* <head>
         <meta name="test-mode" content="true" />
-      </head>
+      </head> */}
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
