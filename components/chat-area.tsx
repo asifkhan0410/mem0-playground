@@ -1,30 +1,52 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Send, Brain, User, Bot, Plus, Minus, RotateCcw, RefreshCw } from 'lucide-react';
-import { Conversation, Message, MemoryActivity } from '@/types';
-import { MessageActivityDetails } from './message-activity-details';
-import { RelevantMemories } from './relevant-memories';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Send,
+  Brain,
+  User,
+  Bot,
+  Plus,
+  Minus,
+  RotateCcw,
+  RefreshCw,
+} from "lucide-react";
+import { Conversation, Message, MemoryActivity } from "@/types";
+import { MessageActivityDetails } from "./message-activity-details";
+import { RelevantMemories } from "./relevant-memories";
 
 interface ChatAreaProps {
   conversation: Conversation | null;
   onToggleMemories: () => void;
   showMemoriesPanel: boolean;
-  onMemoryActivity?: (activity: { added: number; updated: number; deleted: number }) => void;
+  onMemoryActivity?: (activity: {
+    added: number;
+    updated: number;
+    deleted: number;
+  }) => void;
 }
 
-export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, onMemoryActivity }: ChatAreaProps) {
+export function ChatArea({
+  conversation,
+  onToggleMemories,
+  showMemoriesPanel,
+  onMemoryActivity,
+}: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [messageActivities, setMessageActivities] = useState<Record<string, MemoryActivity>>({});
+  const [messageActivities, setMessageActivities] = useState<
+    Record<string, MemoryActivity>
+  >({});
   const [failedMessages, setFailedMessages] = useState<Set<string>>(new Set());
-  const [showRelevantMemories, setShowRelevantMemories] = useState<Set<string>>(new Set());
+  const [showRelevantMemories, setShowRelevantMemories] = useState<Set<string>>(
+    new Set()
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,25 +63,26 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const fetchMessages = async () => {
     if (!conversation) return;
-    
+
     try {
       const response = await fetch(`/api/conversations/${conversation.id}`);
       const data = await response.json();
       setMessages(data.messages || []);
-      
+
       // Fetch memory activities for all user messages
-      const userMessages = data.messages?.filter((msg: Message) => msg.role === 'user') || [];
+      const userMessages =
+        data.messages?.filter((msg: Message) => msg.role === "user") || [];
       userMessages.forEach((msg: Message) => {
         fetchMessageActivity(msg.id);
       });
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error("Error fetching messages:", error);
     }
   };
 
@@ -67,12 +90,18 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
     try {
       const response = await fetch(`/api/messages/${messageId}/activity`);
       const data = await response.json();
-      
+
       const activity = data.activity;
-      
+
       // If no activity yet and we haven't exceeded retry limit, try again
-      if (!activity || (activity.added === 0 && activity.updated === 0 && activity.deleted === 0)) {
-        if (retryCount < 10) { // Poll for up to 10 times (about 20 seconds)
+      if (
+        !activity ||
+        (activity.added === 0 &&
+          activity.updated === 0 &&
+          activity.deleted === 0)
+      ) {
+        if (retryCount < 10) {
+          // Poll for up to 10 times (about 20 seconds)
           setTimeout(() => {
             fetchMessageActivity(messageId, retryCount + 1);
           }, 2000);
@@ -81,13 +110,17 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       }
 
       // Update message activities
-      setMessageActivities(prev => ({
+      setMessageActivities((prev) => ({
         ...prev,
         [messageId]: activity,
       }));
 
       // Notify parent component about memory activity to trigger memories panel refresh
-      if (onMemoryActivity && activity && (activity.added > 0 || activity.updated > 0 || activity.deleted > 0)) {
+      if (
+        onMemoryActivity &&
+        activity &&
+        (activity.added > 0 || activity.updated > 0 || activity.deleted > 0)
+      ) {
         onMemoryActivity({
           added: activity.added || 0,
           updated: activity.updated || 0,
@@ -95,7 +128,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
         });
       }
     } catch (error) {
-      console.error('Error fetching message activity:', error);
+      console.error("Error fetching message activity:", error);
       // Retry on error if we haven't exceeded limit
       if (retryCount < 5) {
         setTimeout(() => {
@@ -109,16 +142,16 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
     if (!conversation || isLoading) return;
 
     setIsLoading(true);
-    setFailedMessages(prev => {
+    setFailedMessages((prev) => {
       const newSet = new Set(prev);
       newSet.delete(messageId);
       return newSet;
     });
 
     try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversation.id,
           content: content,
@@ -126,27 +159,27 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       });
 
       const data = await response.json();
-      
+
       if (data.userMessage && data.assistantMessage) {
         // Remove the failed message and add the new messages
-        setMessages(prev => {
-          const filtered = prev.filter(msg => msg.id !== messageId);
+        setMessages((prev) => {
+          const filtered = prev.filter((msg) => msg.id !== messageId);
           return [...filtered, data.userMessage, data.assistantMessage];
         });
-        
+
         // Start polling for memory activity immediately
         fetchMessageActivity(data.userMessage.id);
       } else {
         // Still failed
-        setFailedMessages(prev => {
+        setFailedMessages((prev) => {
           const newSet = new Set(prev);
           newSet.add(messageId);
           return newSet;
         });
       }
     } catch (error) {
-      console.error('Error retrying message:', error);
-      setFailedMessages(prev => {
+      console.error("Error retrying message:", error);
+      setFailedMessages((prev) => {
         const newSet = new Set(prev);
         newSet.add(messageId);
         return newSet;
@@ -161,25 +194,25 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
     if (!input.trim() || !conversation || isLoading) return;
 
     const userMessage = input.trim();
-    setInput('');
+    setInput("");
     setIsLoading(true);
 
     // Create temporary user message to show immediately
     const tempUserMessage: Message = {
       id: `temp-${Date.now()}`,
       conversation_id: conversation.id,
-      role: 'user',
+      role: "user",
       content: userMessage,
       created_at: new Date().toISOString(),
     };
 
     // Add user message immediately
-    setMessages(prev => [...prev, tempUserMessage]);
+    setMessages((prev) => [...prev, tempUserMessage]);
 
     try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversation.id,
           content: userMessage,
@@ -187,28 +220,28 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       });
 
       const data = await response.json();
-      
+
       if (data.userMessage && data.assistantMessage) {
         // Replace temp user message with real one and add assistant response
-        setMessages(prev => {
-          const filtered = prev.filter(msg => msg.id !== tempUserMessage.id);
+        setMessages((prev) => {
+          const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
           return [...filtered, data.userMessage, data.assistantMessage];
         });
-        
+
         // Start polling for memory activity immediately
         fetchMessageActivity(data.userMessage.id);
       } else {
         // API response was successful but didn't return expected data
-        setFailedMessages(prev => {
+        setFailedMessages((prev) => {
           const newSet = new Set(prev);
           newSet.add(tempUserMessage.id);
           return newSet;
         });
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       // Mark the message as failed instead of removing it
-      setFailedMessages(prev => {
+      setFailedMessages((prev) => {
         const newSet = new Set(prev);
         newSet.add(tempUserMessage.id);
         return newSet;
@@ -219,14 +252,82 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
   };
 
   const formatMessageContent = (content: string) => {
+    let formatted = content;
+
+    // Format line breaks and paragraphs
+    formatted = formatted
+      // Convert double line breaks to paragraphs
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      // Convert single line breaks to <br>
+      .replace(/\n/g, "<br>")
+      // Wrap in paragraph tags
+      .replace(/^(.*)$/, '<p class="mb-0">$1</p>');
+
+    // Format lists (basic support for numbered and bulleted lists)
+    formatted = formatted
+      // Numbered lists
+      .replace(/(\d+\.\s[^\n]+(?:\n\d+\.\s[^\n]+)*)/g, (match) => {
+        const items = match
+          .split(/\n(?=\d+\.\s)/)
+          .map(
+            (item) => `<li class="mb-1">${item.replace(/^\d+\.\s/, "")}</li>`
+          )
+          .join("");
+        return `<ol class="list-decimal list-inside mb-3 space-y-1">${items}</ol>`;
+      })
+      // Bulleted lists
+      .replace(/([\-\*]\s[^\n]+(?:\n[\-\*]\s[^\n]+)*)/g, (match) => {
+        const items = match
+          .split(/\n(?=[\-\*]\s)/)
+          .map(
+            (item) => `<li class="mb-1">${item.replace(/^[\-\*]\s/, "")}</li>`
+          )
+          .join("");
+        return `<ul class="list-disc list-inside mb-3 space-y-1">${items}</ul>`;
+      });
+
+    // Format bold text (**text** or __text__)
+    formatted = formatted
+      .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      .replace(/__([^_]+)__/g, '<strong class="font-semibold">$1</strong>');
+
+    // Format italic text (*text* or _text_)
+    formatted = formatted
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em class="italic">$1</em>')
+      .replace(/(?<!_)_([^_]+)_(?!_)/g, '<em class="italic">$1</em>');
+
+    // Format inline code (`code`)
+    formatted = formatted.replace(
+      /`([^`]+)`/g,
+      '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">$1</code>'
+    );
+
+    // Format code blocks (```code```)
+    formatted = formatted.replace(
+      /```([^`]*)```/g,
+      '<pre class="bg-gray-100 dark:bg-gray-800 p-3 rounded-md overflow-x-auto mb-3"><code class="text-sm font-mono">$1</code></pre>'
+    );
+
+    // Format blockquotes (> text)
+    formatted = formatted.replace(
+      /^>\s(.+)$/gm,
+      '<blockquote class="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-600 dark:text-gray-400 mb-3">$1</blockquote>'
+    );
+
+    // Format links ([text](url))
+    formatted = formatted.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
     // Replace memory citations with highlighted text
-    return content.replace(/\[memory:([^\]]+)\]/g, (match, memoryId) => {
+    formatted = formatted.replace(/\[memory:([^\]]+)\]/g, (match, memoryId) => {
       return `<span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mx-0.5" title="Referenced Memory: ${memoryId}">
-        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain h-3 w-3 mr-1"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"></path><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path><path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path><path d="M19.938 10.5a4 4 0 0 1 .585.396"></path><path d="M6 18a4 4 0 0 1-1.967-.516"></path><path d="M19.967 17.484A4 4 0 0 1 18 18"></path></svg>
+        Memory
       </span>`;
     });
+    return formatted;
   };
 
   if (!conversation) {
@@ -234,8 +335,12 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
       <div className="h-full flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <Bot className="h-16 w-16 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium mb-2">Welcome to Living Memory Chat</h3>
-          <p className="text-sm">Select a conversation or create a new one to start chatting</p>
+          <h3 className="text-lg font-medium mb-2">
+            Welcome to Living Memory Chat
+          </h3>
+          <p className="text-sm">
+            Select a conversation or create a new one to start chatting
+          </p>
         </div>
       </div>
     );
@@ -257,7 +362,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
           className="flex items-center gap-2"
         >
           <Brain className="h-4 w-4" />
-          {showMemoriesPanel ? 'Hide' : 'Show'} Memories
+          {showMemoriesPanel ? "Hide" : "Show"} Memories
         </Button>
       </div>
 
@@ -267,19 +372,23 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
             <div
               key={message.id}
               className={`flex gap-3 ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
+                message.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-              <div className={`flex gap-3 max-w-3xl ${
-                message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-              }`}>
+              <div
+                className={`flex gap-3 max-w-3xl ${
+                  message.role === "user" ? "flex-row-reverse" : "flex-row"
+                }`}
+              >
                 <div className="flex-shrink-0">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {message.role === 'user' ? (
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {message.role === "user" ? (
                       <User className="h-4 w-4" />
                     ) : (
                       <Bot className="h-4 w-4" />
@@ -287,40 +396,51 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                   </div>
                 </div>
 
-                <div className={`flex-1 ${
-                  message.role === 'user' ? 'text-right' : 'text-left'
-                }`}>
-                  <div className={`inline-block px-4 py-3 rounded-2xl ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted border'
-                  }`}>
-                    {message.role === 'assistant' ? (
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: formatMessageContent(message.content) 
+                <div
+                  className={`flex-1 ${
+                    message.role === "user" ? "text-right" : "text-left"
+                  }`}
+                >
+                  <div
+                    className={`inline-block px-4 py-3 rounded-2xl ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-white dark:bg-muted border border-gray-200 dark:border-gray-700 shadow-sm"
+                    }`}
+                  >
+                    {message.role === "assistant" ? (
+                      <div
+                        className="prose prose-sm max-w-none dark:prose-invert
+                          prose-headings:text-gray-900 dark:prose-headings:text-gray-100
+                          prose-p:text-gray-700 dark:prose-p:text-gray-300
+                          prose-strong:text-gray-900 dark:prose-strong:text-gray-100
+                          prose-code:text-gray-800 dark:prose-code:text-gray-200
+                          prose-pre:bg-gray-50 dark:prose-pre:bg-gray-800
+                          prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600
+                          prose-li:text-gray-700 dark:prose-li:text-gray-300"
+                        dangerouslySetInnerHTML={{
+                          __html: formatMessageContent(message.content),
                         }}
                       />
                     ) : (
-                      <p>{message.content}</p>
+                      <p className="whitespace-pre-wrap">{message.content}</p>
                     )}
                   </div>
 
-                  {message.role === 'user' && (
+                  {message.role === "user" && (
                     <div className="flex items-center justify-end gap-2 mt-2">
                       {failedMessages.has(message.id) ? (
                         <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="destructive" 
-                            className="text-xs"
-                          >
+                          <Badge variant="destructive" className="text-xs">
                             failed to send
                           </Badge>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-xs h-6 px-2"
-                            onClick={() => retryMessage(message.id, message.content)}
+                            onClick={() =>
+                              retryMessage(message.id, message.content)
+                            }
                             disabled={isLoading}
                           >
                             <RefreshCw className="h-3 w-3 mr-1" />
@@ -330,8 +450,8 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                       ) : messageActivities[message.id] ? (
                         <Sheet>
                           <SheetTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               className="text-xs h-6 px-2"
                             >
@@ -353,16 +473,16 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                             />
                           </SheetContent>
                         </Sheet>
-                      ) : message.id.startsWith('temp-') ? (
-                        <Badge 
-                          variant="secondary" 
+                      ) : message.id.startsWith("temp-") ? (
+                        <Badge
+                          variant="secondary"
                           className="text-xs animate-pulse"
                         >
                           processing...
                         </Badge>
                       ) : (
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="text-xs animate-pulse"
                         >
                           updating memory...
@@ -371,12 +491,12 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                     </div>
                   )}
 
-                  {message.role === 'assistant' && (
+                  {message.role === "assistant" && (
                     <div className="mt-2">
-                      {message.id.startsWith('temp-') ? (
+                      {message.id.startsWith("temp-") ? (
                         <div className="flex items-center justify-start gap-2">
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className="text-xs animate-pulse"
                           >
                             extracting memory...
@@ -384,9 +504,10 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                         </div>
                       ) : (
                         (() => {
-                          const memoryMatches = message.content.match(/\[memory:[^\]]+\]/g);
+                          const memoryMatches =
+                            message.content.match(/\[memory:[^\]]+\]/g);
                           const memoryCount = memoryMatches?.length || 0;
-                          
+
                           if (memoryCount > 0) {
                             return (
                               <div className="space-y-2">
@@ -400,7 +521,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                                     size="sm"
                                     className="text-xs h-6 px-2"
                                     onClick={() => {
-                                      setShowRelevantMemories(prev => {
+                                      setShowRelevantMemories((prev) => {
                                         const newSet = new Set(prev);
                                         if (newSet.has(message.id)) {
                                           newSet.delete(message.id);
@@ -411,15 +532,18 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
                                       });
                                     }}
                                   >
-                                    {showRelevantMemories.has(message.id) ? 'Hide' : 'Show'} Details
+                                    {showRelevantMemories.has(message.id)
+                                      ? "Hide"
+                                      : "Show"}{" "}
+                                    Details
                                   </Button>
                                 </div>
-                                
+
                                 {showRelevantMemories.has(message.id) && (
-                                  <RelevantMemories 
+                                  <RelevantMemories
                                     messageId={message.id}
                                     onClose={() => {
-                                      setShowRelevantMemories(prev => {
+                                      setShowRelevantMemories((prev) => {
                                         const newSet = new Set(prev);
                                         newSet.delete(message.id);
                                         return newSet;
@@ -439,7 +563,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
               </div>
             </div>
           ))}
-          
+
           {isLoading && (
             <div className="flex gap-3 justify-start">
               <div className="flex gap-3 max-w-3xl">
@@ -459,7 +583,7 @@ export function ChatArea({ conversation, onToggleMemories, showMemoriesPanel, on
               </div>
             </div>
           )}
-          
+
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
