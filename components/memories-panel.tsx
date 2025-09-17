@@ -111,6 +111,7 @@ export function MemoriesPanel({
               onClick={fetchMemories}
               disabled={isLoading}
               className="h-6 w-6 p-0"
+              aria-label="Refresh memories"
             >
               <RefreshCw
                 className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`}

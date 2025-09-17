@@ -48,7 +48,11 @@ export function RelevantMemories({ messageId, onClose }: RelevantMemoriesProps) 
     }
   };
 
-  if (!isVisible || memories.length === 0) {
+  if (!isVisible) {
+    return null;
+  }
+
+  if (memories.length === 0 && !isLoading) {
     return null;
   }
 

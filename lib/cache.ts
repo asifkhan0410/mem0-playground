@@ -23,7 +23,8 @@ export class CacheService {
   // Search results cache
   static getSearchResults(userId: string, query: string): any[] | undefined {
     const key = `search:${userId}:${query}`;
-    return searchCache.get(key);
+    const result = searchCache.get(key);
+    return result === null ? undefined : result;
   }
 
   static setSearchResults(userId: string, query: string, results: any[]): void {
@@ -34,7 +35,8 @@ export class CacheService {
   // All memories cache
   static getAllMemories(userId: string): any | undefined {
     const key = `memories:${userId}`;
-    return memoriesCache.get(key);
+    const result = memoriesCache.get(key);
+    return result === null ? undefined : result;
   }
 
   static setAllMemories(userId: string, results: any): void {
@@ -60,8 +62,8 @@ export class CacheService {
     memoriesCache.del(memoriesKey);
 
     // Remove all search results for this user
-    const keys = memoriesCache.keys();
-    keys.forEach(key => {
+    const searchKeys = searchCache.keys();
+    searchKeys.forEach(key => {
       if (key.startsWith(`search:${userId}:`)) {
         searchCache.del(key);
       }

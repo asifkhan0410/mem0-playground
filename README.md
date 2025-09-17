@@ -17,7 +17,7 @@ A sophisticated chat application built with Next.js that integrates with Mem0 fo
 - **Real-time Memory Sync** - Automatic memory updates during conversations
 - **Responsive Design** - Works seamlessly on desktop and mobile
 - **Dark/Light Theme** - System-aware theme switching
-- **Authentication** - GitHub OAuth and Email magic links
+- **Authentication** - Email magic links with Supabase
 - **Database** - SQLite with better-sqlite3 for local development
 - **Testing Suite** - Unit tests (Vitest), component tests (RTL), E2E tests (Playwright)
 
@@ -41,7 +41,7 @@ memory_links (id, message_id, mem0_id, operation, created_at)
 ### API Integration
 - **Mem0 Service** - Memory creation, search, update, delete operations
 - **OpenAI Service** - LLM responses with memory context and citation extraction
-- **Authentication** - NextAuth.js with GitHub and Email providers
+- **Authentication** - Supabase Auth Email providers
 
 ## 🚀 Setup Instructions
 
@@ -71,7 +71,8 @@ cp .env.example .env.local
 # Required
 MEM0_API_KEY=your_mem0_api_key
 OPENAI_API_KEY=your_openai_api_key
-NEXTAUTH_SECRET=your_random_secret
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Optional
 MEM0_ORG_ID=your_mem0_org_id
@@ -191,7 +192,7 @@ npm run test:coverage
 - **Testing Implementation** - 2 hours
 - **UI/UX Polish & Accessibility** - 2 hours
 
-**Total Development Time: ~20 hours**
+**Total Development Time: ~15 hours**
 
 ## 🚦 Memory Change Detection
 
